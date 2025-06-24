@@ -18,8 +18,8 @@ import pandas as pd
 from scikit_learn_contrib.imbalanced_learn.over_sampling import _random_over_sampler as over_sampling
 from scikit_learn_contrib.imbalanced_learn.under_sampling._prototype_selection import _random_under_sampler as under_sampling
 
-from google3.pyglib import gfile
-from google3.pyglib import resources
+import os
+import os
 from absl.testing import absltest
 from product_return_predictor.src.python import constant
 from product_return_predictor.src.python import custom_transformer
@@ -42,10 +42,10 @@ _NUMERIC_LABELS = ['refund_value', 'refund_proportion']
 
 def _read_csv(path: str) -> pd.DataFrame:
   path = os.path.join(
-      'google3/third_party/professional_services/solutions/product_return_predictor/src/python/test_data/',
+      'product_return_predictor/src/python/test_data/',
       path,
   )
-  with gfile.Open(resources.GetResourceFilename(path)) as f:
+  with open(path) as f:
     return pd.read_csv(f)
 
 

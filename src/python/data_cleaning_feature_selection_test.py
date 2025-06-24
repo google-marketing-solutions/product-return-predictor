@@ -22,8 +22,8 @@ from sklearn import compose
 from sklearn import pipeline
 from sklearn import preprocessing
 
-from google3.pyglib import gfile
-from google3.pyglib import resources
+import os
+import os
 from absl.testing import absltest
 from product_return_predictor.src.python import constant
 from product_return_predictor.src.python import custom_transformer
@@ -50,12 +50,11 @@ _DATE_COLS = ['transaction_date']
 
 def _read_csv(path: str) -> pd.DataFrame:
   path = (
-      'google3/third_party/professional_services/solutions/product_return_predictor/src/python/test_data/'
+      'product_return_predictor/src/python/test_data/'
       + path
   )
-  with gfile.Open(resources.GetResourceFilename(path)) as f:
+  with open(path) as f:
     return pd.read_csv(f)
-
 
 class DataCleaningFeatureSelectionTest(absltest.TestCase):
 
