@@ -24,7 +24,9 @@ CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{data_pipeline_type}_ml_ready
 AS (
 SELECT * EXCEPT (customer_type)
 FROM `{project_id}.{dataset_id}.{data_pipeline_type}_ml_ready_data`
-WHERE customer_type = 'existing customer transaction');
+WHERE customer_type = 'existing customer transaction'
+AND past_30_days_transaction_value IS NOT NULL
+);
 
 -- Create ML ready table for new customers (with fewer relevant features).
 CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{data_pipeline_type}_ml_ready_data_for_first_time_purchase`
@@ -45,4 +47,6 @@ SELECT
     calculated_past_user_item_refund_rate,
     calculated_past_user_item_refund_amt_proportion)
 FROM `{project_id}.{dataset_id}.{data_pipeline_type}_ml_ready_data`
-WHERE customer_type = 'first time purchase');
+WHERE customer_type = 'first time purchase'
+AND past_30_days_transaction_value IS NOT NULL
+);
