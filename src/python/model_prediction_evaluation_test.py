@@ -73,7 +73,7 @@ class ModelPredictionEvaluationTest(absltest.TestCase):
         project_id='test_project',
         dataset_id='test_dataset',
         bigquery_client=mock_bigquery_client,
-        refund_value=constant.TargetVariable.REFUND_VALUE,
+        refund_value=constant.TargetVariable.REFUND_VALUE.value,
         is_two_step_model=False,
         preprocessed_table_name='ml_ready_table',
     )
@@ -106,7 +106,7 @@ class ModelPredictionEvaluationTest(absltest.TestCase):
           project_id='test_project',
           dataset_id='test_dataset',
           bigquery_client=self.mock_bigquery_client,
-          refund_value=constant.TargetVariable.REFUND_VALUE,
+          refund_value=constant.TargetVariable.REFUND_VALUE.value,
           refund_flag=None,
           is_two_step_model=True,
           preprocessed_table_name='ml_ready_table',
@@ -132,8 +132,8 @@ class ModelPredictionEvaluationTest(absltest.TestCase):
             project_id='test_project',
             bigquery_client=mock_bigquery_client,
             dataset_id='test_dataset',
-            refund_value=constant.TargetVariable.REFUND_VALUE,
-            refund_flag=constant.TargetVariable.REFUND_FLAG,
+            refund_value=constant.TargetVariable.REFUND_VALUE.value,
+            refund_flag=constant.TargetVariable.REFUND_FLAG.value,
             is_two_step_model=False,
             preprocessed_table_name='ml_ready_table',
         )
@@ -178,8 +178,8 @@ class ModelPredictionEvaluationTest(absltest.TestCase):
         project_id='test_project',
         dataset_id='test_dataset',
         bigquery_client=mock.MagicMock(),
-        refund_flag=constant.TargetVariable.REFUND_FLAG,
-        refund_value=constant.TargetVariable.REFUND_VALUE,
+        refund_flag=constant.TargetVariable.REFUND_FLAG.value,
+        refund_value=constant.TargetVariable.REFUND_VALUE.value,
         preprocessed_table_name='ml_ready_table',
     )
 
@@ -202,8 +202,8 @@ class ModelPredictionEvaluationTest(absltest.TestCase):
         bigquery_client=mock.MagicMock(),
         regression_model_type=constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
         binary_classifier_model_type=constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
-        refund_value=constant.TargetVariable.REFUND_VALUE,
-        refund_flag=constant.TargetVariable.REFUND_FLAG,
+        refund_value=constant.TargetVariable.REFUND_VALUE.value,
+        refund_flag=constant.TargetVariable.REFUND_FLAG.value,
         is_two_step_model=False,
         preprocessed_table_name='ml_ready_table',
     )

@@ -17,6 +17,8 @@ import pickle
 import tempfile
 from unittest import mock
 
+from google.api_core import exceptions
+from google.cloud import bigquery
 import pandas as pd
 from sklearn import pipeline
 from sklearn import preprocessing
@@ -91,7 +93,7 @@ class UtilsTest(absltest.TestCase):
           mock_pipeline,
           mock_client,
           gcp_bucket_name,
-          filename_without_extension
+          filename_without_extension,
       )
 
       mock_client.bucket.assert_called_once_with(gcp_bucket_name)
@@ -148,9 +150,27 @@ class UtilsTest(absltest.TestCase):
         ),
     }
     expected_df = pd.DataFrame(expected_data)
-    pd.testing.assert_frame_equal(
-        cleaned_df, expected_df
-        )
+    pd.testing.assert_frame_equal(cleaned_df, expected_df)
+
+  def test_check_bigquery_table_exists_returns_true_when_table_exists(self):
+    mock_client = mock.create_autospec(bigquery.Client)
+    mock_client.get_table.return_value = None
+    result = utils.check_bigquery_table_exists(
+        mock_client, 'test_dataset', 'test_table'
+    )
+    self.assertTrue(result)
+    mock_client.get_table.assert_called_once()
+
+  def test_check_bigquery_table_exists_returns_false_when_table_does_not_exist(
+      self,
+  ):
+    mock_client = mock.create_autospec(bigquery.Client)
+    mock_client.get_table.side_effect = exceptions.NotFound('Table not found')
+    result = utils.check_bigquery_table_exists(
+        mock_client, 'test_dataset', 'non_existent_table'
+    )
+    self.assertFalse(result)
+    mock_client.get_table.assert_called_once()
 
 
 if __name__ == '__main__':

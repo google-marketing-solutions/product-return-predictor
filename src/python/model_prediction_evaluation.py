@@ -15,7 +15,6 @@
 """Module for evaluating model performance and generating prediction."""
 
 from collections.abc import Mapping
-from typing import TypeAlias
 
 from google.cloud import bigquery
 import matplotlib
@@ -27,15 +26,8 @@ from product_return_predictor.src.python import constant
 from product_return_predictor.src.python import utils
 
 
-_SupportedModelType: TypeAlias = (
-    constant.LinearBigQueryMLModelType
-    | constant.DNNBigQueryMLModelType
-    | constant.BoostedTreeBigQueryMLModelType
-)
-
-
 def _validate_regression_model_type(
-    regression_model_type: _SupportedModelType,
+    regression_model_type: constant.SupportedModelTypes,
 ) -> None:
   """Check if regression model type is supported.
 
@@ -57,8 +49,8 @@ def _validate_regression_model_type(
 
 
 def _validate_regression_and_classification_model_types(
-    binary_classifier_model_type: _SupportedModelType = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
-    regression_model_type: _SupportedModelType = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
+    binary_classifier_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
+    regression_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
 ):
   """Validate input model types for generating model performance metrics.
 
@@ -87,8 +79,8 @@ def _regression_model_performance_metrics_data(
     project_id: str,
     bigquery_client: bigquery.Client,
     dataset_id: str,
-    refund_value: constant.TargetVariable,
-    regression_model_type: _SupportedModelType,
+    refund_value: str,
+    regression_model_type: constant.SupportedModelTypes,
     preprocessed_table_name: str,
 ) -> pd.DataFrame:
   """Get regression model performance metrics.
@@ -110,7 +102,7 @@ def _regression_model_performance_metrics_data(
   regression_model_performance_metrics_table_name = (
       constant.MODEL_PERFORMANCE_METRICS_TABLE_NAMES['regression_model'].format(
           preprocessed_table_name=preprocessed_table_name,
-          refund_value_col=refund_value.value,
+          refund_value_col=refund_value,
           regression_model_type=regression_model_type.value,
       )
   )
@@ -127,8 +119,8 @@ def _binary_classifier_model_performance_metrics_data(
     project_id: str,
     bigquery_client: bigquery.Client,
     dataset_id: str,
-    refund_flag: constant.TargetVariable,
-    binary_classifier_model_type: _SupportedModelType,
+    refund_flag: str,
+    binary_classifier_model_type: constant.SupportedModelTypes,
     preprocessed_table_name: str,
 ) -> pd.DataFrame:
   """Get binary classifier model performance metrics.
@@ -151,7 +143,7 @@ def _binary_classifier_model_performance_metrics_data(
       constant.MODEL_PERFORMANCE_METRICS_TABLE_NAMES[
           'classification_model'
       ].format(
-          refund_flag_col=refund_flag.value,
+          refund_flag_col=refund_flag,
           binary_classifier_model_type=binary_classifier_model_type.value,
           preprocessed_table_name=preprocessed_table_name,
       )
@@ -170,8 +162,8 @@ def _two_step_model_performance_metrics_data(
     project_id: str,
     bigquery_client: bigquery.Client,
     dataset_id: str,
-    refund_value: constant.TargetVariable,
-    refund_flag: constant.TargetVariable,
+    refund_value: str,
+    refund_flag: str,
     preprocessed_table_name: str,
 ) -> pd.DataFrame:
   """Get two-step (classification & regression) model performance metrics.
@@ -191,8 +183,8 @@ def _two_step_model_performance_metrics_data(
   """
   two_step_prediction_performance_metrics_table_name = (
       constant.MODEL_PERFORMANCE_METRICS_TABLE_NAMES['2_step_model'].format(
-          refund_flag_col=refund_flag.value,
-          refund_value_col=refund_value.value,
+          refund_flag_col=refund_flag,
+          refund_value_col=refund_value,
           preprocessed_table_name=preprocessed_table_name,
       )
   )
@@ -211,10 +203,10 @@ def model_performance_metrics(
     bigquery_client: bigquery.Client,
     dataset_id: str,
     preprocessed_table_name: str,
-    refund_value: constant.TargetVariable,
-    refund_flag: constant.TargetVariable,
-    regression_model_type: _SupportedModelType = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
-    binary_classifier_model_type: _SupportedModelType = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
+    refund_value: str,
+    refund_flag: str,
+    regression_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
+    binary_classifier_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
     is_two_step_model: bool = False,
 ) -> Mapping[str, pd.DataFrame]:
   """Get model performance metrics from BigQuery tables after training.
@@ -284,9 +276,9 @@ def model_prediction(
     dataset_id: str,
     bigquery_client: bigquery.Client,
     preprocessed_table_name: str,
-    refund_value: constant.TargetVariable,
-    refund_flag: constant.TargetVariable | None = None,
-    regression_model_type: _SupportedModelType = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
+    refund_value: str,
+    refund_flag: str | None = None,
+    regression_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
     use_prediction_pipeline: bool = False,
     is_two_step_model: bool = False,
 ) -> pd.DataFrame:
@@ -327,13 +319,13 @@ def model_prediction(
   prediction_table_name = constant.MODEL_PREDICTION_TABLE_NAMES[key1][key2]
   if refund_flag is not None:
     prediction_table_name = prediction_table_name.format(
-        refund_flag_col=refund_flag.value,
-        refund_value_col=refund_value.value,
+        refund_flag_col=refund_flag,
+        refund_value_col=refund_value,
         preprocessed_table_name=preprocessed_table_name,
     )
   else:
     prediction_table_name = prediction_table_name.format(
-        refund_value_col=refund_value.value,
+        refund_value_col=refund_value,
         regression_model_type=regression_model_type.value,
         preprocessed_table_name=preprocessed_table_name,
     )
@@ -358,7 +350,7 @@ def plot_predictions_actuals_distribution(
     use_prediction_pipeline: Whether to show distribution for prediction
       generated from prediction pipeline. If false, show distribution for
       prediction generated from training phase.
-    **kwargs: Additional arguments to pass to matplotlib.pyplot to create plots
+    **kwargs: Additional arguments to pass to matplotlib.pyplot to create plots.
 
   Returns:
     Mapping of predictions and actuals distribution description.
@@ -423,8 +415,8 @@ def compare_and_plot_tier_level_avg_prediction(
     dataset_id: str,
     bigquery_client: bigquery.Client,
     preprocessed_table_name: str,
-    refund_flag: constant.TargetVariable,
-    refund_value: constant.TargetVariable,
+    refund_flag: str,
+    refund_value: str,
     **kwargs,
 ) -> None:
   """Compare tier level average prediction vs actual by plotting.
@@ -445,8 +437,8 @@ def compare_and_plot_tier_level_avg_prediction(
       constant.TIER_LEVEL_AVG_PREDICTION_COMPARISON_TABLE_NAME.format(
           project_id=project_id,
           dataset_id=dataset_id,
-          refund_flag_col=refund_flag.value,
-          refund_value_col=refund_value.value,
+          refund_flag_col=refund_flag,
+          refund_value_col=refund_value,
           preprocessed_table_name=preprocessed_table_name,
       )
   )
@@ -506,12 +498,12 @@ def training_feature_importance(
     dataset_id: str,
     bigquery_client: bigquery.Client,
     preprocessed_table_name: str,
-    regression_model_type: _SupportedModelType,
-    binary_classifier_model_type: _SupportedModelType,
-    refund_value: constant.TargetVariable,
-    refund_flag: constant.TargetVariable,
+    regression_model_type: constant.SupportedModelTypes,
+    binary_classifier_model_type: constant.SupportedModelTypes,
+    refund_value: str,
+    refund_flag: str,
     is_two_step_model: bool = False,
-):
+) -> Mapping[str, pd.DataFrame]:
   """Get feature importance from BigQuery tables after training.
 
   Args:
@@ -537,7 +529,7 @@ def training_feature_importance(
 
   regression_feature_importance_table_name = (
       constant.REGRESSION_FEATURE_IMPORTANCE_TABLE_NAME.format(
-          refund_value_col=refund_value.value,
+          refund_value_col=refund_value,
           regression_model_type=regression_model_type.value,
           preprocessed_table_name=preprocessed_table_name,
       )
@@ -550,7 +542,7 @@ def training_feature_importance(
       table_name=regression_feature_importance_table_name,
   )
 
-  feature_importance_dfs_by_model_type[regression_model_type] = (
+  feature_importance_dfs_by_model_type[regression_model_type.value] = (
       regression_feature_importance_df
   )
 
@@ -565,7 +557,7 @@ def training_feature_importance(
 
     classification_feature_importance_table_name = (
         constant.CLASSIFICATION_FEATURE_IMPORTANCE_TABLE_NAME.format(
-            refund_flag_col=refund_flag.value,
+            refund_flag_col=refund_flag,
             binary_classifier_model_type=binary_classifier_model_type.value,
             preprocessed_table_name=preprocessed_table_name,
         )
@@ -584,7 +576,7 @@ def training_feature_importance(
         title_name='classification model feature importance',
     )
 
-    feature_importance_dfs_by_model_type[binary_classifier_model_type] = (
+    feature_importance_dfs_by_model_type[binary_classifier_model_type.value] = (
         classification_feature_importance_df
     )
 

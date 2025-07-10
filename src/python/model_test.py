@@ -193,8 +193,8 @@ class ModelTest(absltest.TestCase):
         regression_model_type=(
             constant.LinearBigQueryMLModelType.LINEAR_REGRESSION
         ),
-        refund_flag=constant.TargetVariable.REFUND_FLAG,
-        refund_value=constant.TargetVariable.REFUND_VALUE,
+        refund_flag=constant.TargetVariable.REFUND_FLAG.value,
+        refund_value=constant.TargetVariable.REFUND_VALUE.value,
     )
     call_args = mock_bigquery_client.query.call_args.args[0]
     self.assertIn("CREATE OR REPLACE MODEL", call_args)
@@ -222,7 +222,7 @@ class ModelTest(absltest.TestCase):
         regression_model_type=(
             constant.LinearBigQueryMLModelType.LINEAR_REGRESSION
         ),
-        refund_value=constant.TargetVariable.REFUND_VALUE,
+        refund_value=constant.TargetVariable.REFUND_VALUE.value,
     )
     call_args = mock_bigquery_client.query.call_args.args[0]
     self.assertIn("CREATE OR REPLACE MODEL", call_args)
@@ -243,13 +243,12 @@ class ModelTest(absltest.TestCase):
           transaction_id_col="transaction_id",
           preprocessed_table_name="ml_ready_table",
           num_tiers=3,
+          regression_model_type=constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
+          binary_classifier_model_type=constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
           bigquery_client=mock_bigquery_client,
           bqml_template_files_dir=_BQML_QUERY_TEMPLATE_FILES_FOR_TESTING_WITH_MISSING_TEMPLATE_FILE,
           is_two_step_model=False,
-          regression_model_type=(
-              constant.LinearBigQueryMLModelType.LINEAR_REGRESSION
-          ),
-          refund_value=constant.TargetVariable.REFUND_VALUE,
+          refund_value=constant.TargetVariable.REFUND_VALUE.value,
       )
 
   def test_bigquery_ml_model_prediction_for_two_steps_model_calls_expected_bqml_query(
@@ -269,12 +268,10 @@ class ModelTest(absltest.TestCase):
         bigquery_client=mock_bigquery_client,
         bqml_template_files_dir=_BQML_QUERY_TEMPLATE_FILES_FOR_TESTING,
         is_two_step_model=True,
+        regression_model_type=constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
         binary_classifier_model_type=constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
-        regression_model_type=(
-            constant.LinearBigQueryMLModelType.LINEAR_REGRESSION
-        ),
-        refund_flag=constant.TargetVariable.REFUND_FLAG,
-        refund_value=constant.TargetVariable.REFUND_VALUE,
+        refund_flag=constant.TargetVariable.REFUND_FLAG.value,
+        refund_value=constant.TargetVariable.REFUND_VALUE.value,
     )
     call_args = mock_bigquery_client.query.call_args.args[0]
     self.assertIn("ML.PREDICT", call_args)
@@ -301,7 +298,7 @@ class ModelTest(absltest.TestCase):
         regression_model_type=(
             constant.LinearBigQueryMLModelType.LINEAR_REGRESSION
         ),
-        refund_value=constant.TargetVariable.REFUND_VALUE,
+        refund_value=constant.TargetVariable.REFUND_VALUE.value,
     )
     call_args = mock_bigquery_client.query.call_args.args[0]
     self.assertIn("ML.PREDICT", call_args)
@@ -331,7 +328,7 @@ class ModelTest(absltest.TestCase):
           bqml_template_files_dir=_BQML_QUERY_TEMPLATE_FILES_FOR_TESTING,
           is_two_step_model=True,
           regression_model_type=constant.BoostedTreeBigQueryMLModelType.BOOSTED_TREE_REGRESSOR,
-          refund_value=constant.TargetVariable.REFUND_VALUE,
+          refund_value=constant.TargetVariable.REFUND_VALUE.value,
       )
 
 

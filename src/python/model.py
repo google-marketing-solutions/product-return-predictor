@@ -15,7 +15,7 @@
 """Module for building and training models."""
 
 from collections.abc import Mapping
-from typing import Optional, Union
+from typing import Optional
 
 from absl import logging
 from google.cloud import bigquery
@@ -271,26 +271,18 @@ def build_hyperparameter_tuning_options_for_bqml_boosted_tree_model(
 def bigquery_ml_model_training(
     project_id: str,
     dataset_id: str,
+    num_tiers: int,
+    bigquery_client: bigquery.Client,
     transaction_date_col: str,
     transaction_id_col: str,
     preprocessed_table_name: str,
-    num_tiers: int,
-    bigquery_client: bigquery.Client,
     bqml_template_files_dir: Mapping[
         str, str
     ] = constant.BQML_QUERY_TEMPLATE_FILES,
-    regression_model_type: Union[
-        constant.LinearBigQueryMLModelType,
-        constant.DNNBigQueryMLModelType,
-        constant.BoostedTreeBigQueryMLModelType,
-    ] = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
-    binary_classifier_model_type: Union[
-        constant.LinearBigQueryMLModelType,
-        constant.DNNBigQueryMLModelType,
-        constant.BoostedTreeBigQueryMLModelType,
-    ] = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
-    refund_value: constant.TargetVariable = constant.TargetVariable.REFUND_VALUE,
-    refund_flag: constant.TargetVariable | None = None,
+    regression_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LINEAR_REGRESSION,
+    binary_classifier_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
+    refund_value: str = constant.TargetVariable.REFUND_VALUE.value,
+    refund_flag: str | None = None,
     probability_threshold_for_prediction: float = 0.5,
     probability_threshold_for_model_evaluation: float = 0.5,
     is_two_step_model: bool = False,
@@ -301,12 +293,12 @@ def bigquery_ml_model_training(
   Args:
     project_id: Google Cloud Platform project id.
     dataset_id: Google Cloud Platform dataset id where training data is stored.
+    num_tiers: Tier number for creating tier level average prediction.
+    bigquery_client: Bigquery client for training BQML model.
     transaction_date_col: Column name of transaction date of the training data.
     transaction_id_col: Column name of transaction id of the training data.
     preprocessed_table_name: Name of the preprocessed table after data cleaning
       and feature engineering.
-    num_tiers: Tier number for creating tier level average prediction.
-    bigquery_client: Bigquery client for training BQML model.
     bqml_template_files_dir: Directory containing BQML query template files.
     regression_model_type: Model type of regression model (e.g. Linear
       regression).
@@ -418,8 +410,8 @@ def bigquery_ml_model_training(
         dataset_id=dataset_id,
         transaction_date_col=transaction_date_col,
         transaction_id_col=transaction_id_col,
-        refund_flag_col=refund_flag.value,
-        refund_value_col=refund_value.value,
+        refund_flag_col=refund_flag,
+        refund_value_col=refund_value,
         binary_classifier_model_type=binary_classifier_model_type.value,
         classification_model_config=classification_model_config,
         regression_model_type=regression_model_type.value,
@@ -439,7 +431,7 @@ def bigquery_ml_model_training(
         dataset_id=dataset_id,
         transaction_date_col=transaction_date_col,
         transaction_id_col=transaction_id_col,
-        refund_value_col=refund_value.value,
+        refund_value_col=refund_value,
         regression_model_type=regression_model_type.value,
         regression_model_config=regression_model_config,
         num_tiers=num_tiers,
@@ -454,10 +446,10 @@ def bigquery_ml_model_training(
 def bigquery_ml_model_prediction(
     project_id: str,
     dataset_id: str,
-    transaction_date_col: str,
-    transaction_id_col: str,
     preprocessed_table_name: str,
     bigquery_client: bigquery.Client,
+    transaction_date_col: str,
+    transaction_id_col: str,
     bqml_template_files_dir: Mapping[
         str, str
     ] = constant.BQML_QUERY_TEMPLATE_FILES,
@@ -471,8 +463,8 @@ def bigquery_ml_model_prediction(
         | constant.DNNBigQueryMLModelType
         | constant.BoostedTreeBigQueryMLModelType
     ) = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
-    refund_value: constant.TargetVariable = constant.TargetVariable.REFUND_VALUE,
-    refund_flag: constant.TargetVariable | None = None,
+    refund_value: str = constant.TargetVariable.REFUND_VALUE.value,
+    refund_flag: str | None = None,
     probability_threshold_for_prediction: float = 0.5,
     is_two_step_model: bool = False,
 ) -> None:
@@ -481,11 +473,11 @@ def bigquery_ml_model_prediction(
   Args:
     project_id: Google Cloud Platform project id.
     dataset_id: Google Cloud Platform dataset id where training data is stored.
-    transaction_date_col: Transaction date column name of the training data.
-    transaction_id_col: Transaction id column name of the training data.
     preprocessed_table_name: Name of the preprocessed table after data cleaning
       and feature engineering.
     bigquery_client: Bigquery client for training BQML model.
+    transaction_date_col: Transaction date column name of the training data.
+    transaction_id_col: Transaction id column name of the training data.
     bqml_template_files_dir: Directory mapping with model type (i.e.
       regression_only_training, regression_only_prediction,
       classification_regression_training and
@@ -548,8 +540,8 @@ def bigquery_ml_model_prediction(
       dataset_id=dataset_id,
       transaction_date_col=transaction_date_col,
       transaction_id_col=transaction_id_col,
-      refund_flag_col=(refund_flag.value if refund_flag else None),
-      refund_value_col=refund_value.value,
+      refund_flag_col=(refund_flag if refund_flag else None),
+      refund_value_col=refund_value,
       binary_classifier_model_type=binary_classifier_model_type.value,
       regression_model_type=regression_model_type.value,
       probability_threshold_for_prediction=probability_threshold_for_prediction,

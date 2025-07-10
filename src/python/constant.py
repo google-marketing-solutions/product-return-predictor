@@ -15,6 +15,7 @@
 """Module for saving constants values."""
 
 import enum
+from typing import TypeAlias
 import immutabledict
 
 
@@ -109,6 +110,14 @@ class TrainTest(enum.Enum):
 
   TRAIN = 'train'
   TEST = 'test'
+
+
+@enum.unique
+class DataPipelineType(enum.Enum):
+  """Data pipeline types."""
+
+  TRAINING = 'TRAINING'
+  PREDICTION = 'PREDICTION'
 
 
 MINIMUM_DATA_POINTS_FOR_DOWNSAMPLING = 10000
@@ -231,3 +240,33 @@ BQML_QUERY_TEMPLATE_FILES = immutabledict.immutabledict({
         f'{BQML_QUERY_TEMPLATE_DIR}/classification_regression_2_steps_model_prediction_pipeline.sql'
     ),
 })
+
+
+GA4_DATA_PIPELINE_QUERY_TEMPLATES = immutabledict.immutabledict({
+    'train_query_step1': 'src/sql/data_pipeline/step1_create_lookup_tables.sql',
+    'train_query_step2': (
+        'src/sql/data_pipeline/step2_create_preprocessed_tables.sql'
+    ),
+    'train_query_step3': (
+        'src/sql/data_pipeline/step3_create_staging_tables.sql'
+    ),
+    'train_query_step4': (
+        'src/sql/data_pipeline/step4_create_website_events_pivot_data.sql'
+    ),
+    'train_query_step5': (
+        'src/sql/data_pipeline/step5_aggregate_event_pivot_tables.sql'
+    ),
+    'train_query_step6': 'src/sql/data_pipeline/step6_combine_features.sql',
+    'train_query_step7': (
+        'src/sql/data_pipeline/step7_create_ml_ready_tables.sql'
+    ),
+    'train_query_step8': (
+        'src/sql/data_pipeline/step8_drop_intermediate_tables.sql'
+    ),
+})
+
+SupportedModelTypes: TypeAlias = (
+    LinearBigQueryMLModelType
+    | DNNBigQueryMLModelType
+    | BoostedTreeBigQueryMLModelType
+)

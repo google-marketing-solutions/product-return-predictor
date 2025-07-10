@@ -20,6 +20,7 @@ from typing import Optional
 
 from absl import logging
 from google.cloud import bigquery
+from google.cloud import exceptions
 from google.cloud import storage
 import pandas as pd
 from sklearn import pipeline
@@ -186,3 +187,27 @@ def read_file(file_path: str | pathlib.Path) -> str:
   if isinstance(file_path, str):
     file_path = pathlib.Path(file_path)
   return file_path.read_text()
+
+
+def check_bigquery_table_exists(
+    bigquery_client: bigquery.Client,
+    dataset_id: str,
+    table_id: str,
+) -> bool:
+  """Checks if a BigQuery table exists.
+
+  Args:
+      bigquery_client: The BigQuery client to use for querying.
+      dataset_id: The ID of the dataset containing the table.
+      table_id: The ID of the table.
+
+  Returns:
+      True if the table exists, False if the table is not found.
+  """
+  table_ref = bigquery_client.dataset(dataset_id).table(table_id)
+  try:
+    bigquery_client.get_table(table_ref)
+    return True
+  except exceptions.NotFound:
+    logging.info('Table %r not found.', table_id)
+    return False
