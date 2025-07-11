@@ -24,8 +24,8 @@ import dataclasses
 
 import numpy as np
 import pandas as pd
-from scikit_learn_contrib.imbalanced_learn.over_sampling import _random_over_sampler as over_sampling
-from scikit_learn_contrib.imbalanced_learn.under_sampling._prototype_selection import _random_under_sampler as under_sampling
+from imblearn import over_sampling
+from imblearn import under_sampling
 from scipy import stats
 from sklearn import base
 
