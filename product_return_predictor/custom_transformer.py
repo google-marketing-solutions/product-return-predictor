@@ -29,7 +29,7 @@ from imblearn import under_sampling
 from scipy import stats
 from sklearn import base
 
-from product_return_predictor.product_return_predictor import constant
+from product_return_predictor import constant
 
 
 def date_string_numeric_cols_from_input_dataframe(

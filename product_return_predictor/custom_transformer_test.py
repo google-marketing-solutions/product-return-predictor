@@ -21,8 +21,8 @@ from imblearn import under_sampling
 import os
 import os
 from absl.testing import absltest
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import custom_transformer
+from product_return_predictor import constant
+from product_return_predictor import custom_transformer
 
 
 _ID_COLS = ['transaction_id', 'transaction_date']

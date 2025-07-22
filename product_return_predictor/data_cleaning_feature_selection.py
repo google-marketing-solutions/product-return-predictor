@@ -25,9 +25,9 @@ from sklearn import compose
 from sklearn import pipeline
 from sklearn import preprocessing
 
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import custom_transformer
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import constant
+from product_return_predictor import custom_transformer
+from product_return_predictor import utils
 
 
 def _convert_columns_to_right_data_type(

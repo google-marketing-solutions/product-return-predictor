@@ -21,11 +21,11 @@ from google.cloud import bigquery
 from google.cloud import storage
 import pandas as pd
 
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import data_cleaning_feature_selection
-from product_return_predictor.product_return_predictor import model
-from product_return_predictor.product_return_predictor import model_prediction_evaluation
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import constant
+from product_return_predictor import data_cleaning_feature_selection
+from product_return_predictor import model
+from product_return_predictor import model_prediction_evaluation
+from product_return_predictor import utils
 
 
 @dataclasses.dataclass()

@@ -19,8 +19,8 @@ from google.cloud.bigquery import job
 import immutabledict
 
 from absl.testing import absltest
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import model
+from product_return_predictor import constant
+from product_return_predictor import model
 
 
 _INPUT_HYPERPARAMETERS_SETUP_FOR_DNN_MODEL = {

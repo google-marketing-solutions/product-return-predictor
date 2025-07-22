@@ -19,12 +19,12 @@ from google.cloud import storage
 import pandas as pd
 
 from absl.testing import absltest
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import data_cleaning_feature_selection
-from product_return_predictor.product_return_predictor import model
-from product_return_predictor.product_return_predictor import model_prediction_evaluation
-from product_return_predictor.product_return_predictor import product_return_predictor
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import constant
+from product_return_predictor import data_cleaning_feature_selection
+from product_return_predictor import model
+from product_return_predictor import model_prediction_evaluation
+from product_return_predictor import product_return_predictor
+from product_return_predictor import utils
 
 
 class ProductReturnPredictorTest(absltest.TestCase):

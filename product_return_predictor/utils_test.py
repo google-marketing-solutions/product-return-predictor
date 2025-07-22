@@ -25,7 +25,7 @@ from sklearn import preprocessing
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import utils
 
 
 class UtilsTest(parameterized.TestCase):

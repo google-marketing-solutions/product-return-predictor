@@ -20,8 +20,8 @@ from typing import Optional
 from absl import logging
 from google.cloud import bigquery
 
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import constant
+from product_return_predictor import utils
 
 
 def build_hyperparameter_tuning_options_for_bqml_linear_model(

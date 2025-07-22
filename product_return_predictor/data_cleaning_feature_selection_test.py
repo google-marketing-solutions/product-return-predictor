@@ -25,10 +25,10 @@ from sklearn import preprocessing
 import os
 import os
 from absl.testing import absltest
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import custom_transformer
-from product_return_predictor.product_return_predictor import data_cleaning_feature_selection
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import constant
+from product_return_predictor import custom_transformer
+from product_return_predictor import data_cleaning_feature_selection
+from product_return_predictor import utils
 
 
 _STRING_COLS = ['past_product_returned_descriptions', 'transaction_id']

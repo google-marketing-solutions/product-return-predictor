@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import constant
+from product_return_predictor import utils
 
 
 def _validate_regression_model_type(

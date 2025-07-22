@@ -19,9 +19,9 @@ import matplotlib
 import pandas as pd
 
 from absl.testing import absltest
-from product_return_predictor.product_return_predictor import constant
-from product_return_predictor.product_return_predictor import model_prediction_evaluation
-from product_return_predictor.product_return_predictor import utils
+from product_return_predictor import constant
+from product_return_predictor import model_prediction_evaluation
+from product_return_predictor import utils
 
 
 _PREDICTION_DF = pd.DataFrame({
