@@ -21,11 +21,11 @@ from google.cloud import bigquery
 from google.cloud import storage
 import pandas as pd
 
-from product_return_predictor.src.python import constant
-from product_return_predictor.src.python import data_cleaning_feature_selection
-from product_return_predictor.src.python import model
-from product_return_predictor.src.python import model_prediction_evaluation
-from product_return_predictor.src.python import utils
+from product_return_predictor.product_return_predictor import constant
+from product_return_predictor.product_return_predictor import data_cleaning_feature_selection
+from product_return_predictor.product_return_predictor import model
+from product_return_predictor.product_return_predictor import model_prediction_evaluation
+from product_return_predictor.product_return_predictor import utils
 
 
 @dataclasses.dataclass()
@@ -66,6 +66,15 @@ class ProductReturnPredictor:
     refund_proportion_col: Column name for refund proportion (target variable).
       This is optional. When the user does not use GA4 data for feature
       engineering, this field is required.
+    train_test_split_test_size_proportion: Proportion of the data to be used as
+      the test set.
+    invalid_value_threshold_for_row_removal: Threshold for removing rows with
+      invalid values.
+    invalid_value_threshold_for_column_removal: Threshold for removing columns
+      with invalid values.
+    min_correlation_threshold_with_numeric_labels_for_feature_reduction:
+      Threshold for reducing the number of features using correlation with
+      numeric labels.
     transaction_date_col: Column name for transaction date. This is optional.
       When the user does not use GA4 data for feature engineering, this field is
       required.
@@ -100,6 +109,12 @@ class ProductReturnPredictor:
   refund_value_col: str | None = None
   refund_flag_col: str | None = None
   refund_proportion_col: str | None = None
+  train_test_split_test_size_proportion: float | None = 0.1
+  invalid_value_threshold_for_row_removal: float = 0.5
+  invalid_value_threshold_for_column_removal: float = 0.95
+  min_correlation_threshold_with_numeric_labels_for_feature_reduction: (
+      float | None
+  ) = 0.1
   regression_model_type: constant.SupportedModelTypes = dataclasses.field(
       default_factory=lambda: constant.LinearBigQueryMLModelType.LINEAR_REGRESSION
   )
@@ -202,7 +217,16 @@ class ProductReturnPredictor:
         refund only after 30 days of the transaction date.
       recency_of_data_in_days: The number of days to look back in data for model
         training.
+
+    Returns:
+      ml_ready_dfs_for_existing_customers: The ml ready dataframes for existing
+        customers.
+      ml_ready_dfs_for_first_time_purchase: The ml ready dataframes for first
+        time purchase.
     """
+    use_prediction_pipeline = (
+        data_pipeline_type == constant.DataPipelineType.PREDICTION
+    )
     if self.use_ga4_data_for_feature_engineering:
       for _, query_file in constant.GA4_DATA_PIPELINE_QUERY_TEMPLATES.items():
         query = utils.read_file(query_file)
@@ -233,9 +257,6 @@ class ProductReturnPredictor:
               f'{data_pipeline_type.value}_ml_ready_data_for_first_time_purchase'
           ),
       )
-      use_prediction_pipeline = (
-          data_pipeline_type == constant.DataPipelineType.PREDICTION
-      )
       data_cleaning_feature_selection.data_preprocessing_for_ml(
           use_prediction_pipeline=use_prediction_pipeline,
           df=ml_ready_data_for_existing_customers,
@@ -251,7 +272,12 @@ class ProductReturnPredictor:
           categorical_labels=self.categorical_labels,
           train_test_split_order_by_cols=[self.transaction_date_col],
           location=self.location,
+          train_test_split_test_size_proportion=self.train_test_split_test_size_proportion,
+          invalid_value_threshold_for_row_removal=self.invalid_value_threshold_for_row_removal,
+          invalid_value_threshold_for_column_removal=self.invalid_value_threshold_for_column_removal,
+          min_correlation_threshold_with_numeric_labels_for_feature_reduction=self.min_correlation_threshold_with_numeric_labels_for_feature_reduction,
       )
+
       data_cleaning_feature_selection.data_preprocessing_for_ml(
           use_prediction_pipeline=use_prediction_pipeline,
           df=ml_ready_data_for_first_time_purchase,
@@ -267,6 +293,23 @@ class ProductReturnPredictor:
           categorical_labels=self.categorical_labels,
           train_test_split_order_by_cols=[self.transaction_date_col],
           location=self.location,
+          train_test_split_test_size_proportion=self.train_test_split_test_size_proportion,
+          invalid_value_threshold_for_row_removal=self.invalid_value_threshold_for_row_removal,
+          invalid_value_threshold_for_column_removal=self.invalid_value_threshold_for_column_removal,
+          min_correlation_threshold_with_numeric_labels_for_feature_reduction=self.min_correlation_threshold_with_numeric_labels_for_feature_reduction,
+      )
+    else:
+      data_cleaning_feature_selection.create_ml_ready_data_for_preprocessed_data_provided_by_user(
+          preprocessed_table_name_by_user=self.ml_training_table_name,
+          bigquery_client=self.gcp_bq_client,
+          project_id=self.project_id,
+          dataset_id=self.dataset_id,
+          refund_value_col=self.refund_value_col,
+          refund_flag_col=self.refund_flag_col,
+          refund_proportion_col=self.refund_proportion_col,
+          use_prediction_pipeline=use_prediction_pipeline,
+          transaction_id_col=self.transaction_id_col,
+          train_test_split_test_size_proportion=self.train_test_split_test_size_proportion,
       )
 
   def model_training_pipeline_evaluation_and_prediction(
@@ -278,6 +321,9 @@ class ProductReturnPredictor:
       num_tiers_to_create_avg_prediction: int = 10,
       probability_threshold_for_prediction: float = 0.5,
       probability_threshold_for_model_evaluation: float = 0.5,
+      bqml_template_files_dir: Mapping[
+          str, str
+      ] = constant.BQML_QUERY_TEMPLATE_FILES,
       **plot_kwargs,
   ) -> tuple[
       Mapping[str, pd.DataFrame],
@@ -317,10 +363,14 @@ class ProductReturnPredictor:
       probability_threshold_for_model_evaluation: The probability threshold to
         use for model evaluation for binary classifier model when
         is_two_step_model is True.
+      bqml_template_files_dir: Directory mapping with model type (i.e.
+        regression_only_training, regression_only_prediction,
+        classification_regression_training and
+        classification_regression_prediction) as the key and and corresponding
+        model prediction BQML query template files as the value.
       **plot_kwargs: Additional arguments to pass to matplotlib.pyplot in
         model_prediction_evaluation.plot_predictions_actuals_distribution and
         model_prediction_evaluation.compare_and_plot_tier_level_avg_prediction
-        to create plots.
 
     Returns:
       performance_metrics_dfs: The performance metrics dataframes.
@@ -372,6 +422,7 @@ class ProductReturnPredictor:
         is_two_step_model=is_two_step_model,
         probability_threshold_for_prediction=probability_threshold_for_prediction,
         probability_threshold_for_model_evaluation=probability_threshold_for_model_evaluation,
+        bqml_template_files_dir=bqml_template_files_dir,
     )
     performance_metrics_dfs = (
         model_prediction_evaluation.model_performance_metrics(
@@ -440,6 +491,9 @@ class ProductReturnPredictor:
       binary_classifier_model_type: constant.SupportedModelTypes = constant.LinearBigQueryMLModelType.LOGISTIC_REGRESSION,
       first_time_purchase: bool | None = None,
       probability_threshold_for_prediction: float = 0.5,
+      bqml_template_files_dir: Mapping[
+          str, str
+      ] = constant.BQML_QUERY_TEMPLATE_FILES,
   ) -> None:
     """Generate model prediction for the prediction pipeline.
 
@@ -465,6 +519,11 @@ class ProductReturnPredictor:
         existing customers.
       probability_threshold_for_prediction: The probability threshold to use for
         prediction for binary classifier model when is_two_step_model is True.
+      bqml_template_files_dir: Directory mapping with model type (i.e.
+        regression_only_training, regression_only_prediction,
+        classification_regression_training and
+        classification_regression_prediction) as the key and and corresponding
+        model prediction BQML query template files as the value.
 
     Raises:
       ValueError: If first_time_purchase is not specified when
@@ -493,8 +552,13 @@ class ProductReturnPredictor:
         preprocessed_table_name = f'{constant.DataPipelineType.PREDICTION.value}_ml_ready_data_for_first_time_purchase'
       else:
         preprocessed_table_name = f'{constant.DataPipelineType.PREDICTION.value}_ml_ready_data_for_existing_customers'
+      preprocessed_training_table_name = preprocessed_table_name.replace(
+          constant.DataPipelineType.PREDICTION.value,
+          constant.DataPipelineType.TRAINING.value,
+      )
     else:
       preprocessed_table_name = self.ml_prediction_table_name
+      preprocessed_training_table_name = self.ml_training_table_name
 
     model.bigquery_ml_model_prediction(
         project_id=self.project_id,
@@ -509,4 +573,6 @@ class ProductReturnPredictor:
         refund_flag=self.refund_flag_col,
         probability_threshold_for_prediction=probability_threshold_for_prediction,
         is_two_step_model=is_two_step_model,
+        bqml_template_files_dir=bqml_template_files_dir,
+        preprocessed_training_table_name=preprocessed_training_table_name,
     )

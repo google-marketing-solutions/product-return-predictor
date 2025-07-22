@@ -25,9 +25,9 @@ from sklearn import compose
 from sklearn import pipeline
 from sklearn import preprocessing
 
-from product_return_predictor.src.python import constant
-from product_return_predictor.src.python import custom_transformer
-from product_return_predictor.src.python import utils
+from product_return_predictor.product_return_predictor import constant
+from product_return_predictor.product_return_predictor import custom_transformer
+from product_return_predictor.product_return_predictor import utils
 
 
 def _convert_columns_to_right_data_type(
@@ -386,7 +386,7 @@ def _train_test_split(
     train or test set.
   """
   if order_by_col:
-    df.sort_values(by=order_by_col, ascending=asc_order, inplace=True)
+    df = df.sort_values(by=order_by_col, ascending=asc_order)
   else:
     df = df.sample(n=df.shape[0])
   df.reset_index(drop=True, inplace=True)
@@ -1142,6 +1142,10 @@ def data_preprocessing_for_ml(
 
   Returns:
     Mapping of label and preprocessed data with selected features.
+
+  Raises:
+    ValueError: If required arguments are missing or labels have only one unique
+      value.
   """
   if use_prediction_pipeline:
     if (feature_selection_pipeline_name is None) or (
@@ -1169,7 +1173,7 @@ def data_preprocessing_for_ml(
           'Missing required argument categorical_labels for creating pipeline'
           ' for training.'
       )
-
+  df = utils.clean_dataframe_column_names(df.copy())
   cleaned_data = _clean_and_handle_invalid_data(
       df=df,
       bigquery_client=bigquery_client,
@@ -1191,6 +1195,17 @@ def data_preprocessing_for_ml(
     _, numerical_features, categorical_features = (
         custom_transformer.feature_cols(cleaned_data, id_cols, result.labels)
     )
+
+  if not use_prediction_pipeline:
+    for col in cleaned_data.columns:
+      if cleaned_data[col].nunique() == 1:
+        cleaned_data.drop([col], axis=1, inplace=True)
+    for label in [*numeric_labels, *categorical_labels]:
+      if cleaned_data[label].nunique() == 1:
+        raise ValueError(
+            f'Label {label} only has one unique value. Please validate your'
+            ' data source.'
+        )
 
   dfs_with_selected_features = _feature_selection_training_prediction_pipeline(
       use_prediction_pipeline=use_prediction_pipeline,
@@ -1218,8 +1233,9 @@ def data_preprocessing_for_ml(
         train_test_split_test_size_proportion=train_test_split_test_size_proportion,
         gcp_storage_client=gcp_storage_client,
         gcp_bucket_name=gcp_bucket_name,
-        pipeline_name=data_processing_pipeline_name,
+        pipeline_name=f'{data_processing_pipeline_name}_for_label_{label}',
     )
+    ml_ready_data = utils.clean_dataframe_column_names(ml_ready_data)
     ml_ready_dfs[label] = ml_ready_data
     if use_prediction_pipeline:
       ml_ready_data_table_name = (
@@ -1242,3 +1258,75 @@ def data_preprocessing_for_ml(
         location=location,
     )
   return ml_ready_dfs
+
+
+def create_ml_ready_data_for_preprocessed_data_provided_by_user(
+    preprocessed_table_name_by_user: str,
+    bigquery_client: bigquery.Client,
+    project_id: str,
+    dataset_id: str,
+    refund_value_col: str,
+    refund_flag_col: str,
+    refund_proportion_col: str,
+    use_prediction_pipeline: bool,
+    transaction_id_col: str,
+    train_test_split_test_size_proportion: float | None = 0.1,
+) -> None:
+  """Creates ML ready data for preprocessed data provided by user.
+
+  Args:
+    preprocessed_table_name_by_user: Name of the preprocessed table provided by
+      the user.
+    bigquery_client: Bigquery client for loading dataframe to BigQuery.
+    project_id: Project id of the destination ML ready table.
+    dataset_id: Dataset id of the destination ML ready table.
+    refund_value_col: Column name of the refund value column.
+    refund_flag_col: Column name of the refund flag column.
+    refund_proportion_col: Column name of the refund proportion column.
+    use_prediction_pipeline: Whether to create ML ready data for prediction
+      pipeline.
+    transaction_id_col: Column name of the transaction id column.
+    train_test_split_test_size_proportion: Proportion of the data to be used as
+      the test set.
+  """
+  query_for_preparing_user_provided_data = """
+  CREATE OR REPLACE TABLE `{project_id}.{dataset_id}.{ml_ready_data_table_name}`
+  AS
+  SELECT
+    *
+    EXCEPT({refund_value_col}, {refund_flag_col}, {refund_proportion_col}),
+    {label_col},
+    CASE
+    WHEN MOD(FARM_FINGERPRINT(CAST({transaction_id_col} AS STRING)), 100) < ({train_test_split_test_size_proportion} * 100) 
+    THEN 'test' 
+    ELSE 'train'
+    END AS train_test
+  FROM
+    `{project_id}.{dataset_id}.{preprocessed_table_name_by_user}`;
+  """
+  for label in [refund_value_col, refund_flag_col, refund_proportion_col]:
+    if use_prediction_pipeline:
+      ml_ready_data_table_name = (
+          'PREDICTION_ml_data_{}_with_target_variable_{}'.format(
+              preprocessed_table_name_by_user, label
+          )
+      )
+    else:
+      ml_ready_data_table_name = (
+          'TRAINING_ml_data_{}_with_target_variable_{}'.format(
+              preprocessed_table_name_by_user, label
+          )
+      )
+    query = query_for_preparing_user_provided_data.format(
+        project_id=project_id,
+        dataset_id=dataset_id,
+        ml_ready_data_table_name=ml_ready_data_table_name,
+        preprocessed_table_name_by_user=preprocessed_table_name_by_user,
+        label_col=label,
+        refund_value_col=refund_value_col,
+        refund_flag_col=refund_flag_col,
+        refund_proportion_col=refund_proportion_col,
+        transaction_id_col=transaction_id_col,
+        train_test_split_test_size_proportion=train_test_split_test_size_proportion,
+    )
+    bigquery_client.query(query)

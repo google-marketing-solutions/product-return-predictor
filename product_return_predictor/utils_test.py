@@ -24,10 +24,11 @@ from sklearn import pipeline
 from sklearn import preprocessing
 
 from absl.testing import absltest
-from product_return_predictor.src.python import utils
+from absl.testing import parameterized
+from product_return_predictor.product_return_predictor import utils
 
 
-class UtilsTest(absltest.TestCase):
+class UtilsTest(parameterized.TestCase):
 
   @mock.patch('google.cloud.bigquery.Client')
   def test_run_load_table_to_bigquery(self, mock_bigquery_client):
@@ -171,6 +172,70 @@ class UtilsTest(absltest.TestCase):
     )
     self.assertFalse(result)
     mock_client.get_table.assert_called_once()
+
+  def test_replace_special_chars_with_underscore_returns_expected_result(self):
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore('Hello World!'),
+        'hello_world',
+    )
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore(
+            'This is a Test String With $pecial Ch@racters.'
+        ),
+        'this_is_a_test_string_with_pecial_ch_racters',
+    )
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore(
+            'Another one: 123-456_789 (and spaces).'
+        ),
+        'another_one_123_456_789_and_spaces',
+    )
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore(
+            '  Leading and trailing spaces!  '
+        ),
+        'leading_and_trailing_spaces',
+    )
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore(
+            '__Multiple____underscores__here__'
+        ),
+        'multiple_underscores_here',
+    )
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore('NoSpecialCharsHere'),
+        'nospecialcharshere',
+    )
+    self.assertEqual(utils.replace_special_chars_with_underscore(''), '')
+    self.assertEqual(utils.replace_special_chars_with_underscore('   '), '')
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore('!@#$%^&*()'), ''
+    )
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore('123 Test_Name 456'),
+        '123_test_name_456',
+    )
+    self.assertEqual(utils.replace_special_chars_with_underscore('123'), '123')
+    self.assertEqual(
+        utils.replace_special_chars_with_underscore('123.45'), '123_45'
+    )
+    self.assertEqual(utils.replace_special_chars_with_underscore('True'), 'true')
+
+  def test_clean_dataframe_column_names_returns_expected_result(self):
+    df_messy = pd.DataFrame({
+        'First Name': [1, 2],
+        'Product ID#': [3, 4],
+        'Order_Date (YYYY-MM-DD)': [5, 6],
+        '  SALES %': [7, 8],
+    })
+    expected_columns_messy = [
+        'first_name',
+        'product_id',
+        'order_date_yyyy_mm_dd',
+        'sales',
+    ]
+    df_cleaned = utils.clean_dataframe_column_names(df_messy)
+    self.assertListEqual(df_cleaned.columns.tolist(), expected_columns_messy)
 
 
 if __name__ == '__main__':

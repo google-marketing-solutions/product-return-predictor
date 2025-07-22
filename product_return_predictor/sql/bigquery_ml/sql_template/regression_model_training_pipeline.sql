@@ -28,7 +28,7 @@
 -- @param preprocessed_table_name STRING Table name for preprocessed data used for model training.
 
 -- Build and train regression model using hyperparameter tuning
-CREATE OR REPLACE MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`
+CREATE OR REPLACE MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`
   OPTIONS (
     {regression_model_config},
     ENABLE_GLOBAL_EXPLAIN = TRUE,
@@ -45,7 +45,7 @@ AS (
   SELECT *
   FROM
     ML.TRIAL_INFO(
-      MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`)
+      MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`)
 );
 
 -- Get trial_info from best-performing hyperparameters/trials
@@ -56,14 +56,14 @@ AS (
     '{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}' AS model_name,
   FROM
     ML.TRIAL_INFO(
-      MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`)
+      MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`)
   WHERE
     trial_id IN (
       SELECT
         MIN(trial_id) AS min_trial_id
       FROM
         ML.TRIAL_INFO(
-          MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`)
+          MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`)
           AS MLTrialInfo
       WHERE
         MLTrialInfo.status = 'SUCCEEDED'
@@ -77,7 +77,7 @@ AS (
   SELECT *
   FROM
     ML.EVALUATE(
-      MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`,
+      MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`,
       (
         SELECT * EXCEPT ({transaction_date_col}, {transaction_id_col}, train_test)
         FROM `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value`
@@ -97,7 +97,7 @@ AS (
     train_test
   FROM
     ML.PREDICT(
-      MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`,
+      MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`,
       (
         SELECT *
         FROM `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value`
@@ -110,7 +110,7 @@ AS (
   SELECT *
   FROM
     ML.GLOBAL_EXPLAIN(
-      MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`)
+      MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`)
 );
 
 -- Create performance metrics for the regression model using finalized predictions

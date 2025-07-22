@@ -21,8 +21,8 @@ from imblearn import under_sampling
 import os
 import os
 from absl.testing import absltest
-from product_return_predictor.src.python import constant
-from product_return_predictor.src.python import custom_transformer
+from product_return_predictor.product_return_predictor import constant
+from product_return_predictor.product_return_predictor import custom_transformer
 
 
 _ID_COLS = ['transaction_id', 'transaction_date']
@@ -42,7 +42,7 @@ _NUMERIC_LABELS = ['refund_value', 'refund_proportion']
 
 def _read_csv(path: str) -> pd.DataFrame:
   path = os.path.join(
-      'product_return_predictor/src/python/test_data/',
+      'product_return_predictor/product_return_predictor/test_data/',
       path,
   )
   with open(path) as f:

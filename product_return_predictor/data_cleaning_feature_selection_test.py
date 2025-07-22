@@ -25,10 +25,10 @@ from sklearn import preprocessing
 import os
 import os
 from absl.testing import absltest
-from product_return_predictor.src.python import constant
-from product_return_predictor.src.python import custom_transformer
-from product_return_predictor.src.python import data_cleaning_feature_selection
-from product_return_predictor.src.python import utils
+from product_return_predictor.product_return_predictor import constant
+from product_return_predictor.product_return_predictor import custom_transformer
+from product_return_predictor.product_return_predictor import data_cleaning_feature_selection
+from product_return_predictor.product_return_predictor import utils
 
 
 _STRING_COLS = ['past_product_returned_descriptions', 'transaction_id']
@@ -50,7 +50,7 @@ _DATE_COLS = ['transaction_date']
 
 def _read_csv(path: str) -> pd.DataFrame:
   path = (
-      'product_return_predictor/src/python/test_data/'
+      'product_return_predictor/product_return_predictor/test_data/'
       + path
   )
   with open(path) as f:
@@ -556,7 +556,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             '2023-11-14',
             '2023-12-10',
         ],
-        'num__transaction_value': [
+        'num_transaction_value': [
             0.2111818433434819,
             0.3351231663437587,
             0.22286188762800996,
@@ -568,7 +568,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             0.6339883753113755,
             0.8946028231386659,
         ],
-        'num__shipping_value': [
+        'num_shipping_value': [
             0.8545454545454545,
             0.8385026737967913,
             0.11336898395721928,
@@ -580,7 +580,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             0.8117647058823529,
             0.6171122994652406,
         ],
-        'num__item_count': [
+        'num_item_count': [
             0.3333333333333333,
             0.0,
             0.0,
@@ -592,7 +592,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             0.0,
             0.0,
         ],
-        'num__min_price': [
+        'num_min_price': [
             0.0,
             0.4576639166304819,
             0.4194528875379939,
@@ -604,7 +604,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             0.17021276595744678,
             0.54363873208858,
         ],
-        'num__max_price': [
+        'num_max_price': [
             0.9238744248354593,
             0.16529792067097682,
             0.5417321917409283,
@@ -616,7 +616,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             0.5273457976585707,
             0.7957365018347022,
         ],
-        'num__event_count_first_visit': [
+        'num_event_count_first_visit': [
             0.3333333333333333,
             0.3333333333333333,
             0.0,
@@ -656,12 +656,12 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
     expected_data_refund_value = pd.DataFrame(expected_data_refund_value)
     columns_to_convert_to_float = [
         'transaction_id',
-        'num__transaction_value',
-        'num__shipping_value',
-        'num__item_count',
-        'num__min_price',
-        'num__max_price',
-        'num__event_count_first_visit',
+        'num_transaction_value',
+        'num_shipping_value',
+        'num_item_count',
+        'num_min_price',
+        'num_max_price',
+        'num_event_count_first_visit',
         'refund_value',
     ]
     expected_data_refund_value[columns_to_convert_to_float] = (

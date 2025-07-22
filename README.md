@@ -68,13 +68,13 @@ customer lifetime value and purchase propensity.
 
 **The biggest difference between crystalValue and Product Return Predictor is:**
 
-- crystalvalue is designed and used to predict customer lifetime value (LTV)
+- Crystalvalue is designed and used to predict customer lifetime value (LTV)
 while Product Return Predictor is used to predict return value.
 - crystalvalue uses AutoML while Product Return Predictor uses BigQuery ML for
 model training.
-- Compared with crystalvalue which uses simple features, Product Return
-Predictor provides SQL queries that create more comprehensive features for the
-predictive model.
+- Compared with Crystalvalue which uses simple features, Product Return
+Predictor provides SQL queries that create more comprehensive features based on
+GA4 data for predictive model.
 
 ## Solution Workflow Details
 Two components of the overall process of product return predictor on Google

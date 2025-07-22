@@ -19,12 +19,12 @@ from google.cloud import storage
 import pandas as pd
 
 from absl.testing import absltest
-from product_return_predictor.src.python import constant
-from product_return_predictor.src.python import data_cleaning_feature_selection
-from product_return_predictor.src.python import model
-from product_return_predictor.src.python import model_prediction_evaluation
-from product_return_predictor.src.python import product_return_predictor
-from product_return_predictor.src.python import utils
+from product_return_predictor.product_return_predictor import constant
+from product_return_predictor.product_return_predictor import data_cleaning_feature_selection
+from product_return_predictor.product_return_predictor import model
+from product_return_predictor.product_return_predictor import model_prediction_evaluation
+from product_return_predictor.product_return_predictor import product_return_predictor
+from product_return_predictor.product_return_predictor import utils
 
 
 class ProductReturnPredictorTest(absltest.TestCase):
@@ -380,6 +380,7 @@ class ProductReturnPredictorTest(absltest.TestCase):
         is_two_step_model=True,
         probability_threshold_for_prediction=0.5,
         probability_threshold_for_model_evaluation=0.5,
+        bqml_template_files_dir=constant.BQML_QUERY_TEMPLATE_FILES,
     )
     mock_model_performance_metrics.assert_called_once_with(
         preprocessed_table_name=expected_table_name,
@@ -489,6 +490,7 @@ class ProductReturnPredictorTest(absltest.TestCase):
         is_two_step_model=True,
         probability_threshold_for_prediction=0.5,
         probability_threshold_for_model_evaluation=0.5,
+        bqml_template_files_dir=constant.BQML_QUERY_TEMPLATE_FILES,
     )
 
   @mock.patch.object(
@@ -554,6 +556,7 @@ class ProductReturnPredictorTest(absltest.TestCase):
         is_two_step_model=False,
         probability_threshold_for_prediction=0.5,
         probability_threshold_for_model_evaluation=0.5,
+        bqml_template_files_dir=constant.BQML_QUERY_TEMPLATE_FILES,
     )
 
   def test_model_training_pipeline_evaluation_and_prediction_if_missing_first_time_purchase_ga4_raises_error(
@@ -620,6 +623,10 @@ class ProductReturnPredictorTest(absltest.TestCase):
         refund_flag=constant.TargetVariable.REFUND_FLAG.value,
         probability_threshold_for_prediction=0.5,
         is_two_step_model=True,
+        bqml_template_files_dir=constant.BQML_QUERY_TEMPLATE_FILES,
+        preprocessed_training_table_name=(
+            "TRAINING_ml_ready_data_for_existing_customers"
+        ),
     )
 
   @mock.patch.object(model, "bigquery_ml_model_prediction", autospec=True)
@@ -649,6 +656,10 @@ class ProductReturnPredictorTest(absltest.TestCase):
         refund_flag=constant.TargetVariable.REFUND_FLAG.value,
         probability_threshold_for_prediction=0.5,
         is_two_step_model=False,
+        bqml_template_files_dir=constant.BQML_QUERY_TEMPLATE_FILES,
+        preprocessed_training_table_name=(
+            "TRAINING_ml_ready_data_for_first_time_purchase"
+        ),
     )
 
   @mock.patch.object(model, "bigquery_ml_model_prediction", autospec=True)
@@ -682,6 +693,8 @@ class ProductReturnPredictorTest(absltest.TestCase):
         refund_flag="flag_col",
         probability_threshold_for_prediction=0.5,
         is_two_step_model=False,
+        bqml_template_files_dir=constant.BQML_QUERY_TEMPLATE_FILES,
+        preprocessed_training_table_name=None,
     )
 
   def test_prediction_pipeline_prediction_generation_if_missing_first_time_purchase_ga4_raises_error(

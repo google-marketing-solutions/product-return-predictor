@@ -39,7 +39,7 @@ AS (
       FROM
         ML.PREDICT(
           MODEL
-            `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_flag_col}_binary_classifier_{binary_classifier_model_type}`,
+            `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_training_table_name}_with_target_variable_refund_flag_binary_classifier_{binary_classifier_model_type}`,
           (
             SELECT * FROM `{project_id}.{dataset_id}.PREDICTION_ml_data_{preprocessed_table_name}_with_target_variable_refund_flag`
           ))
@@ -57,7 +57,7 @@ AS (
     predicted_{refund_value_col} AS prediction
  FROM
     ML.PREDICT(
-      MODEL `{project_id}.{dataset_id}.{preprocessed_table_name}_with_target_variable_{refund_value_col}_regressor_{regression_model_type}`,
+      MODEL `{project_id}.{dataset_id}.TRAINING_ml_data_{preprocessed_training_table_name}_with_target_variable_refund_value_regressor_{regression_model_type}`,
       (
         SELECT *
         FROM `{project_id}.{dataset_id}.PREDICTION_ml_data_{preprocessed_table_name}_with_target_variable_refund_value`
@@ -82,4 +82,3 @@ AS (
       AND ClassifierPrediction.{transaction_date_col}
         = RegressionPrediction.{transaction_date_col}
 );
-

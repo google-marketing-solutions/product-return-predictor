@@ -20,8 +20,8 @@ from typing import Optional
 from absl import logging
 from google.cloud import bigquery
 
-from product_return_predictor.src.python import constant
-from product_return_predictor.src.python import utils
+from product_return_predictor.product_return_predictor import constant
+from product_return_predictor.product_return_predictor import utils
 
 
 def build_hyperparameter_tuning_options_for_bqml_linear_model(
@@ -447,6 +447,7 @@ def bigquery_ml_model_prediction(
     project_id: str,
     dataset_id: str,
     preprocessed_table_name: str,
+    preprocessed_training_table_name: str,
     bigquery_client: bigquery.Client,
     transaction_date_col: str,
     transaction_id_col: str,
@@ -475,6 +476,8 @@ def bigquery_ml_model_prediction(
     dataset_id: Google Cloud Platform dataset id where training data is stored.
     preprocessed_table_name: Name of the preprocessed table after data cleaning
       and feature engineering.
+    preprocessed_training_table_name: Name of the preprocessed training table
+      that was used for training the model.
     bigquery_client: Bigquery client for training BQML model.
     transaction_date_col: Transaction date column name of the training data.
     transaction_id_col: Transaction id column name of the training data.
@@ -527,14 +530,22 @@ def bigquery_ml_model_prediction(
     )
     destination_table = constant.MODEL_PREDICTION_TABLE_NAMES["prediction"][
         "2_step_model"
-    ]
+    ].format(
+        preprocessed_table_name=preprocessed_table_name,
+        refund_value_col=refund_value,
+        refund_flag_col=refund_flag,
+    )
   else:
     query = utils.read_file(
         bqml_template_files_dir["regression_only_prediction"]
     )
     destination_table = constant.MODEL_PREDICTION_TABLE_NAMES["prediction"][
         "regression_model"
-    ]
+    ].format(
+        preprocessed_table_name=preprocessed_table_name,
+        refund_value_col=refund_value,
+        regression_model_type=regression_model_type.value,
+    )
   formatted_query = query.format(
       project_id=project_id,
       dataset_id=dataset_id,
@@ -546,6 +557,7 @@ def bigquery_ml_model_prediction(
       regression_model_type=regression_model_type.value,
       probability_threshold_for_prediction=probability_threshold_for_prediction,
       preprocessed_table_name=preprocessed_table_name,
+      preprocessed_training_table_name=preprocessed_training_table_name,
   )
   query_job = bigquery_client.query(formatted_query)
   prediction_table_name = f"{project_id}.{dataset_id}.{destination_table}"

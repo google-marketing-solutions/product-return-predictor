@@ -16,6 +16,7 @@
 
 import pathlib
 import pickle
+import re
 from typing import Optional
 
 from absl import logging
@@ -211,3 +212,43 @@ def check_bigquery_table_exists(
   except exceptions.NotFound:
     logging.info('Table %r not found.', table_id)
     return False
+
+
+def replace_special_chars_with_underscore(text_string: str) -> str:
+  """Replaces all special characters (incl space) in a string with underscores.
+
+  The function also converts the string to lowercase for consistency.
+
+  Args:
+      text_string: The input string.
+
+  Returns:
+      Modified string with special characters replaced by underscores,
+      and converted to lowercase.
+  """
+  if not isinstance(text_string, str):
+    text_string = str(text_string)
+
+  text_string = text_string.lower()
+  cleaned_string = re.sub(r'[\W\s]+', '_', text_string)
+  cleaned_string = re.sub(r'_{2,}', '_', cleaned_string)
+  cleaned_string = cleaned_string.strip('_')
+  return cleaned_string
+
+
+def clean_dataframe_column_names(df: pd.DataFrame):
+  """Replacing special character and spacesith underscores for column names.
+
+  The function also converts the column names to lowercase for consistency.
+
+  Args:
+      df: The input pandas dataframe.
+
+  Returns:
+      A new DataFrame with cleaned column names.
+  """
+  new_columns = [
+      replace_special_chars_with_underscore(col) for col in df.columns
+  ]
+  df.columns = new_columns
+  return df
