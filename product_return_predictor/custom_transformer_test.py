@@ -42,7 +42,7 @@ _NUMERIC_LABELS = ['refund_value', 'refund_proportion']
 
 def _read_csv(path: str) -> pd.DataFrame:
   path = os.path.join(
-      'product_return_predictor/product_return_predictor/test_data/',
+      'product_return_predictor/test_data/',
       path,
   )
   with open(path) as f:

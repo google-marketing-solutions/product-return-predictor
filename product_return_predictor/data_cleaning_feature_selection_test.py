@@ -50,7 +50,7 @@ _DATE_COLS = ['transaction_date']
 
 def _read_csv(path: str) -> pd.DataFrame:
   path = (
-      'product_return_predictor/product_return_predictor/test_data/'
+      'product_return_predictor/test_data/'
       + path
   )
   with open(path) as f:

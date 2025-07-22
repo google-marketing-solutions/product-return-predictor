@@ -72,7 +72,7 @@ _INPUT_HYPERPARAMETERS_SETUP_FOR_LINEAR_MODEL = {
     "num_trials": 20,
 }
 
-_BQML_QUERY_TEMPLATE_DIR_FOR_TESTING = "product_return_predictor/product_return_predictor/sql/bigquery_ml/sql_template"
+_BQML_QUERY_TEMPLATE_DIR_FOR_TESTING = "product_return_predictor/sql/bigquery_ml/sql_template"
 
 _BQML_QUERY_TEMPLATE_FILES_FOR_TESTING = immutabledict.immutabledict({
     "regression_only_training": (

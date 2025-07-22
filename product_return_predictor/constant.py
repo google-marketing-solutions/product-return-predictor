@@ -225,7 +225,7 @@ REGRESSION_FEATURE_IMPORTANCE_TABLE_NAME = 'TRAINING_{preprocessed_table_name}_w
 CLASSIFICATION_FEATURE_IMPORTANCE_TABLE_NAME = 'TRAINING_{preprocessed_table_name}_with_target_variable_{refund_flag_col}_binary_classifier_{binary_classifier_model_type}_feature_importance'
 
 BQML_QUERY_TEMPLATE_DIR = (
-    'product_return_predictor/product_return_predictor/sql/bigquery_ml/sql_template'
+    'product_return_predictor/sql/bigquery_ml/sql_template'
 )
 
 BQML_QUERY_TEMPLATE_FILES = immutabledict.immutabledict({
@@ -246,28 +246,28 @@ BQML_QUERY_TEMPLATE_FILES = immutabledict.immutabledict({
 
 GA4_DATA_PIPELINE_QUERY_TEMPLATES = immutabledict.immutabledict({
     'train_query_step1': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step1_create_lookup_tables.sql'
+        'product_return_predictor/sql/data_pipeline/step1_create_lookup_tables.sql'
     ),
     'train_query_step2': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step2_create_preprocessed_tables.sql'
+        'product_return_predictor/sql/data_pipeline/step2_create_preprocessed_tables.sql'
     ),
     'train_query_step3': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step3_create_staging_tables.sql'
+        'product_return_predictor/sql/data_pipeline/step3_create_staging_tables.sql'
     ),
     'train_query_step4': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step4_create_website_events_pivot_data.sql'
+        'product_return_predictor/sql/data_pipeline/step4_create_website_events_pivot_data.sql'
     ),
     'train_query_step5': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step5_aggregate_event_pivot_tables.sql'
+        'product_return_predictor/sql/data_pipeline/step5_aggregate_event_pivot_tables.sql'
     ),
     'train_query_step6': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step6_combine_features.sql'
+        'product_return_predictor/sql/data_pipeline/step6_combine_features.sql'
     ),
     'train_query_step7': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step7_create_ml_ready_tables.sql'
+        'product_return_predictor/sql/data_pipeline/step7_create_ml_ready_tables.sql'
     ),
     'train_query_step8': (
-        'product_return_predictor/product_return_predictor/sql/data_pipeline/step8_drop_intermediate_tables.sql'
+        'product_return_predictor/sql/data_pipeline/step8_drop_intermediate_tables.sql'
     ),
 })
 
