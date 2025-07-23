@@ -1329,4 +1329,4 @@ def create_ml_ready_data_for_preprocessed_data_provided_by_user(
         transaction_id_col=transaction_id_col,
         train_test_split_test_size_proportion=train_test_split_test_size_proportion,
     )
-    bigquery_client.query(query)
+    bigquery_client.query(query).result()

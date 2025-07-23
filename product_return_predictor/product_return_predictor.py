@@ -240,7 +240,7 @@ class ProductReturnPredictor:
             return_policy_window_in_days=return_policy_window_in_days,
             recency_of_data_in_days=recency_of_data_in_days,
         )
-        self.gcp_bq_client.query(query)
+        self.gcp_bq_client.query(query).result()
       ml_ready_data_for_existing_customers = utils.read_bq_table_to_df(
           bigquery_client=self.gcp_bq_client,
           project_id=self.project_id,
