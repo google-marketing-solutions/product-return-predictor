@@ -827,8 +827,9 @@ def _data_preprocessing_training_prediction_pipeline(
           'Missing required arguments for training: label_type '
           'for training pipeline.'
       )
-  categorical_features = [f for f in categorical_features if f in df.columns]
-  numerical_features = [f for f in numerical_features if f in df.columns]
+  if not use_prediction_pipeline:
+    categorical_features = [f for f in categorical_features if f in df.columns]
+    numerical_features = [f for f in numerical_features if f in df.columns]
   custom_data_transformer = _get_data_transformation_pipeline(
       use_prediction_pipeline=use_prediction_pipeline,
       numerical_features=numerical_features,

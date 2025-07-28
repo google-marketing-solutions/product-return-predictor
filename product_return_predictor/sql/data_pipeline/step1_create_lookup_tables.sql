@@ -23,7 +23,7 @@
 -- @param recency_of_data_in_days INT The number of days of data before the current date to use for creating datasets and training the model.
 -- @param data_pipeline_type STRING Whether to process data for training or for prediction.
 -- @param start_date DATE Start date for the data to use recent data only to reduce the processing time and make sure the data used in the model is relevant.
--- @param recency_of_data_in_days INT The number of days of data before the current date to use for creating dataset for model prediction.
+-- @param recency_of_transaction_for_prediction_in_days INT The number of days of data before the current date to use for creating dataset for model prediction.
 -- @param transaction_start_date DATE Start date to limit the transaction ids to be processed for model training & prediction.
 -- @param end_date DATE Transaction data that is older than X days (return policy window) ago to make sure the refund is all set.
 

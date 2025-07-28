@@ -332,9 +332,13 @@ predicted refund amount** <!-- disableFinding(LINE_OVER_80) -->
 ## Implementation Guide
 You can create a VertexAI notebook in VertexAI workbench. Clone the `product_return_predictor` package first.
 
-To understand how to implement the solution, you can go over the `demo_notebook.ipynb`.
+To understand how to implement the solution, you can go over the `model_training_demo_notebook.ipynb` for model training steps and `model_prediction_demo_notebook.ipynb` for model prediction steps. Model training process includes data preprocessing, feature engineering, model training and validation steps. Model prediction process includes data preprocessing, feature engineering and prediction generation steps.
 
 Below is the step-by-step explanation of the notebook steps:
+
+Step 1 to 4 are common steps during training and prediction pipelines in both notebooks. After those 4 steps, training and prediction pipelines have completely different steps in the notebooks.
+
+#**Let us start with explanation for the first 4 steps.**
 
 - **Step 1**: Install product_return_predictor
 ```
@@ -347,13 +351,7 @@ package that also needs to be installed when unavailable.
 
 - **Step 2**: Import General Python Packages and Python Modules
 
-- **Step 3**: Define Solution Parameters: There are 4 types of solution parameters/attributes that need to be defined:
-
-  - **Google Analytics 4 (GA4) Raw Datasets Parameters**: These parameters are crucial if you plan to use GA4 data for feature engineering.
-    - `ga4_project_id:` The Google Cloud Project ID where your GA4 raw dataset
-    resides. This is typically a public dataset or a project you own containing
-    your GA4 export. Example Value: 'bigquery-public-data'.
-    - `ga4_dataset_id`: The BigQuery dataset ID within your ga4_project_id that contains your raw GA4 event data. Example Value: 'my_ga4_dataset_id'.
+- **Step 3**: Define Solution Parameters: There are 5 types of solution parameters/attributes that need to be defined:
 
   - **GCP Product Return Project Parameters**: These parameters define the core GCP resources used by the solution.
     -   `project_id`: Your Google Cloud Project ID where the product return
@@ -431,7 +429,7 @@ package that also needs to be installed when unavailable.
       `use_ga4_data_for_feature_engineering` is True, this is automatically
       set. Example Value: 'refund_proportion'. If not using GA4 data, ensure
       this matches the column name in your input table.
-    - `recency_of_transaction_for_prediction_in_days`: The number of days to
+    - `recency_of_transaction_for_prediction_in_days` (**prediction pipeline only parameter**): The number of days to
       look back from the current date (or a defined cutoff) to consider
       transactions for prediction. Transactions older than this window will not
       be included in the prediction dataset. Example Value: 2 - this means we
@@ -456,6 +454,12 @@ package that also needs to be installed when unavailable.
       when deciding on the number please also keep the recency and relevancy of
       the data in mind.
 
+  - **Google Analytics 4 (GA4) Raw Datasets Parameters**: These parameters are crucial if you plan to use GA4 data for feature engineering. When `use_ga4_data_for_feature_engineering` is True, the solution will use GA4 raw data as the source for feature engineering. When `use_ga4_data_for_feature_engineering` is false, there's no need to provided those parameters.
+    - `ga4_project_id:` The Google Cloud Project ID where your GA4 raw dataset
+    resides. This is typically a public dataset or a project you own containing
+    your GA4 export. Example Value: 'bigquery-public-data'.
+    - `ga4_dataset_id`: The BigQuery dataset ID within your ga4_project_id that contains your raw GA4 event data. Example Value: 'my_ga4_dataset_id'.
+
   - **Modeling Parameters**: These parameters control the type of machine learning models used and the overall modeling approach.
     - `regression_model_type`: Specifies the type of regression model to be
       used for predicting the refund_value or refund_proportion. Example Value:
@@ -470,25 +474,25 @@ package that also needs to be installed when unavailable.
     - `is_two_step_model`: A boolean flag indicating whether to use a two-step
       modeling approach. In a two-step model, a binary classifier first
       predicts if a refund will occur, and if so, a regression model then
-    - `invalid_value_threshold_for_column_removal`: The threshold (as a
-      proportion) for removing columns during data cleaning. If a column has a
-      proportion of invalid values exceeding this threshold, the entire column
-      will be removed. Default Value: 0.95 (95%): Adjust this value based on
-      your data quality. Columns with very high proportions of missing values
-      might not be useful for modeling.
-    - `min_correlation_threshold_with_numeric_labels_for_feature_reduction`:
-      The minimum correlation threshold used for feature reduction. Features
-      with a correlation below this threshold with the numeric target labels
-      (e.g., refund_value, refund_proportion) might be removed to simplify the
-      model and prevent overfitting. Default Value: 0.1. Adjust this value to
-      control the aggressiveness of feature reduction based on correlation.
+
+- **Optional Parameters**: These parameters offer further customization and are often required under specific conditions, as noted in their descriptions.
+    - `ml_training_table_name` (**needed for both training & prediction pipelines**): The name of the BigQuery table containing your preprocessed, ML-ready data for model training. This parameter is required when `use_ga4_data_for_feature_engineering` is False. If you are providing your own preprocessed data, specify the BigQuery table name here and make sure the table is under your GCP project and dataset (provided based on project_id, dataset_id) for your model.
+        - **[Important Note]**: ml_training_table_name needs to be preprocessed properly with columns that represent refund value, refund proportion and refund flag.
+    - `invalid_value_threshold_for_row_removal` (**training pipeline only parameter**): The threshold (as a proportion) for removing rows during data cleaning. If a row has a proportion of invalid (e.g., null) values exceeding this threshold, the entire row will be removed. Default Value: 0.5 (50%) Adjust this value based on your data quality and tolerance for missing data.
+    - `invalid_value_threshold_for_column_removal`(**training pipeline only parameter**): The threshold (as a proportion) for removing columns during data cleaning. If a column has a proportion of invalid values exceeding this threshold, the entire column will be removed. Default Value: 0.95 (95%): Adjust this value based on your data quality. Columns with very high proportions of missing values might not be useful for modeling.
+    - `min_correlation_threshold_with_numeric_labels_for_feature_reduction`(**training pipeline only parameter**): The minimum correlation threshold used for feature reduction. Features with a correlation below this threshold with the numeric target labels (e.g., refund_value, refund_proportion) might be removed to simplify the model and prevent overfitting. Default Value: 0.1. Adjust this value to control the aggressiveness of feature reduction based on correlation.
+    - `ml_prediction_table_name`(**prediction pipeline only parameter**): The name of the BigQuery table containing your preprocessed data for generating predictions. This parameter is required when `use_ga4_data_for_feature_engineering` is False. If you are providing your own data for prediction, specify the BigQuery table name here.
+        - **[Important Note]**: ml_prediction_table_name needs to be preprocessed properly with columns that represent refund value, refund proportion and refund flag.
 
 - **Step 4**: Create a `ProductReturnPredictor` instance called `product_return`
 with all the required parameters Use the predefined parameters above to create a
 `product_return` instance. For more details on the `ProductReturnPredictor`
 class, please refer to `product_return_predictor.py` module under
 `product_return_predictor/product_return_predictor` directory.
-- **Step 5**: Data Processing and Feature Engineering (`data_processing_feature_engineering`)
+
+#**The following steps are implemented for training pipeline:**
+
+- **Step 5**: Data Processing and Feature Engineering for training pipeline(`data_processing_feature_engineering`)
   This step is where your raw data gets transformed into a format suitable for machine learning. It involves several critical sub-steps, including data cleaning, feature creation (if using GA4 data), and preparing the data for model training or prediction.
 
   The `data_processing_feature_engineering` method handles the heavy lifting of preparing your data. It intelligently adapts its process based on whether you're using Google Analytics 4 (GA4) data as your source or providing your own preprocessed data.
@@ -520,8 +524,8 @@ class, please refer to `product_return_predictor.py` module under
             - `constant.DataPipelineType.PREDICTION`: Choose this when you want to generate predictions using a pre-trained model. The pipeline will load the saved preprocessing and feature selection pipelines from Cloud Storage and apply them to your new data, without splitting into train/test sets.
         - How to Provide: Directly use `constant.DataPipelineType.TRAINING` or`constant.DataPipelineType.PREDICTION`.
 
-    - `recency_of_transaction_for_prediction_in_days`: An integer representing the number of past days to include transactions for prediction purposes. This helps focus the prediction on recent customer activity. How to Provide: An integer value (e.g., 2).
-        - Note: This should be provided during Step 3.
+    - `recency_of_transaction_for_prediction_in_days`(**prediction pipeline only parameter**): An integer representing the number of past days to include transactions for prediction purposes. This helps focus the prediction on recent customer activity. How to Provide: An integer value (e.g., 2).
+        - Note: This should be provided during Step 3. There's no need to provide value for this parameter in the training pipeline.
 
     - `return_policy_window_in_days`: An integer indicating your product return policy window in days. This is used to define the timeframe within which a return is considered valid for labeling purposes in the training data. An integer value (e.g., 30).
         - Note: This should be provided during Step 3.
@@ -538,8 +542,8 @@ class, please refer to `product_return_predictor.py` module under
   - **If you have done feature engineering yourself without using the ga4 data export directly**:
       - You will still need to run the following code to prep your dataset for modeling However, all the data cleaning, validation, feature engineering, data scaling steps will be skipped.
       - Also, make use you turn **`use_ga4_data_for_feature_engineering`** to False, and make sure set the values for the following parameters when creating **ProductReturnPredictor** instance:
-          - `ml_training_table_name`
-          - `ml_prediction_table_name`
+          - `ml_training_table_name` (**needed for both training & prediction pipelines**)
+          - `ml_prediction_table_name` (**prediction pipeline only parameter**)
           - `transaction_date_col`
           - `transaction_id_col`
           - `refund_value_col`
@@ -704,7 +708,9 @@ class, please refer to `product_return_predictor.py` module under
   influencing them. This is a crucial step towards understanding and leveraging
   your product return prediction solution!
 
-- **Step 7 Run Prediction Pipeline Data**: Processing and Feature Engineering for Prediction (data_processing_feature_engineering)
+#**The following steps are implemented for prediction pipeline:**
+
+- **Step 5 Create Prediction Pipeline Data**: Processing and Feature Engineering for Prediction (data_processing_feature_engineering)
 
   This section details how the `data_processing_feature_engineering` method
   operates when you are preparing data for generating predictions with your
@@ -750,7 +756,7 @@ class, please refer to `product_return_predictor.py` module under
     data in the exact same way as the training data, so the model can make
     accurate and reliable predictions.
 
--  **Step 8 Prediction Pipeline**: Prediction Generation (`prediction_pipeline_prediction_generation`)
+-  **Step 6 Prediction Pipeline**: Prediction Generation (`prediction_pipeline_prediction_generation`)
 
   This critical step of the solution leverages your previously trained BigQuery
   ML models to generate real-time (or batch) predictions on new, unseen data.
@@ -778,7 +784,7 @@ class, please refer to `product_return_predictor.py` module under
       models in BigQuery, as BigQuery ML models are often associated with their
       training data.
 
-  - Model Selection and Prediction Execution (`model.bigquery_ml_model_prediction`): Based on the `is_two_step_model` parameter:
+  - Model Selection and Prediction Execution (`model.bigquery_ml_model_prediction`) based on the `is_two_step_model` parameter:
       - **Single-Step Model**: If `is_two_step_model` is False, it identifies the
       relevant pre-trained regression model (based on regression_model_type) in
       BigQuery.

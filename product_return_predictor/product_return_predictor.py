@@ -201,22 +201,28 @@ class ProductReturnPredictor:
   def data_processing_feature_engineering(
       self,
       data_pipeline_type: constant.DataPipelineType,
-      recency_of_transaction_for_prediction_in_days: int,
-      return_policy_window_in_days: int,
-      recency_of_data_in_days: int,
+      return_policy_window_in_days: int = 30,
+      recency_of_data_in_days: int = 365,
+      recency_of_transaction_for_prediction_in_days: int = 2,
   ) -> None:
     """Data processing and feature engineering.
 
     Args:
       data_pipeline_type: The type of data pipeline to use, either training or
         prediction.
-      recency_of_transaction_for_prediction_in_days: The number of days to look
-        back for transactions to be considered for prediction.
       return_policy_window_in_days: Return policy window in days. For example,
         if return_policy_window_in_days is 30, then the model will predict the
-        refund only after 30 days of the transaction date.
+        refund only after 30 days of the transaction date. When
+        use_ga4_data_for_feature_engineering is False, this argument will be
+        ignored.
       recency_of_data_in_days: The number of days to look back in data for model
-        training.
+        training. This argument will be ignored when
+        use_ga4_data_for_feature_engineering is False.
+      recency_of_transaction_for_prediction_in_days: The number of days to look
+        back for transactions to be considered for prediction. When the user
+        uses the method for model training, this argument will be ignored. When
+        use_ga4_data_for_feature_engineering is False, this argument will be
+        ignored.
 
     Returns:
       ml_ready_dfs_for_existing_customers: The ml ready dataframes for existing
