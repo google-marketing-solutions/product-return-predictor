@@ -306,7 +306,9 @@ class ProductReturnPredictor:
       )
     else:
       data_cleaning_feature_selection.create_ml_ready_data_for_preprocessed_data_provided_by_user(
-          preprocessed_table_name_by_user=self.ml_training_table_name,
+          preprocessed_table_name_by_user=self.ml_prediction_table_name
+          if use_prediction_pipeline
+          else self.ml_training_table_name,
           bigquery_client=self.gcp_bq_client,
           project_id=self.project_id,
           dataset_id=self.dataset_id,
