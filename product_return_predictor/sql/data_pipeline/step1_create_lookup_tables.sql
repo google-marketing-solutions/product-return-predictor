@@ -42,6 +42,11 @@ DECLARE transaction_start_date DATE DEFAULT (CASE data_pipeline_type WHEN'TRAINI
 -- Declare end_date to make sure to use transaction data that is older than X days (return policy window) ago to make sure the refund is all set.
 DECLARE end_date DATE DEFAULT (CASE data_pipeline_type WHEN'TRAINING' THEN DATE_ADD(CURRENT_DATE(), INTERVAL -{return_policy_window_in_days}-1 DAY) ELSE CURRENT_DATE() END);
 
+-- Check whether the start_date, end_date and transaction_start_date are valid dates.
+ASSERT (start_date <= end_date) AS 'Start date should happen before end date. Please adjust the recency_of_data_in_days to fix the error.';
+ASSERT (transaction_start_date <= end_date) AS 'Transaction start date should happen before end date. Please adjust the recency_of_data_in_days or recency_of_transaction_for_prediction_in_days to fix the error.';
+
+
 -- Create table value function (TVF) to return data with valid transaction revenue and transaction id from GA4.
 CREATE OR REPLACE TABLE FUNCTION `{project_id}.{dataset_id}.FilterTransactionData`(
   end_date DATE)
