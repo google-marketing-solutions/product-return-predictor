@@ -5,6 +5,7 @@
 [Objective](#objective) •
 [Solution Overview](#solution-overview) •
 [Related Work](#related-work) •
+[Advertiser Requirement](#advertiser-requirement-for-running-the-solution) •
 [Infrastructure Design on Google Cloud Platform](#infrastructure-design-on-google-cloud-platform) •
 [Detailed Design](#detailed-design) •
 [Data Requirements](#data-requirements) •
@@ -22,15 +23,47 @@ specific purpose.
 
 ## Objective
 To address the return issue for our retail advertisers, the product return
-solution leverages machine learning to predict return probability at transaction
+solution leverages machine learning to predict refund value at transaction
 level. The solution aims to predict product refund amounts to adjust the
 conversion value for a given transaction/order to make sure our advertisers are
 spending the “right” amount of investment in targeting the “right” customers.
+
+To activate the solution, we can upload adjusted basket value/conversion value
+based on predicted return to Google Ads Smart Bidding.
+
+**Below illustrates the problem statements and how we need to solve it**
+
+<img align="center" width="1000" src="./images/product_return_predictor_what_happens_today.png" alt="problem_statement" /><br>
+
+<img align="center" width="1000" src="./images/product_return_predictor_however.png" alt="problem_statement1" /><br>
+
+<img align="center" width="1000" src="./images/product_return_predictor_what_if.png" alt="problem_statement2" /><br>
+
+<img align="center" width="1000" src="./images/product_return_predictor_what_if1.png" alt="problem_statement3" /><br>
 
 ## Solution Overview
 The product return predictor solution is an end-to-end model training and
 prediction pipeline, leveraging GA4 (Google Analytics) data export on BigQuery
 and deployed on Google Cloud Platform (GCP).
+
+To implement the solution:
+Users need to create a Vertex AI notebook instance on Vertex AI workbench and
+clone the `product_return_predictor` package from to run through both the
+training and prediction pipelines.
+
+```
+git clone https://github.com/google-marketing-solutions/product-return-predictor.git
+```
+
+**The final outputs of the solution are:**
+
+- Pre-trained product return predictive model that predict the predicted refund value of transactions from the the model training pipeline.
+
+- The prediction data saved in BigQuery table for refund prediction with transaction date, transaction id and refund value prediction.
+
+  - Here’s the example of how the prediction table would look like:
+
+<img align="center" width="800" src="./images/product_return_predictor_sample_output.png" alt="sample_output" /><br>
 
 **The pipeline includes two parts: model training and prediction.**
 
@@ -44,17 +77,14 @@ prediction.
 - **Privacy-safe solution leveraging 1st Party data:** Our product return
 predictor model leverages 1st Party - mainly GA4 data export on BigQuery (and
 other data sources/tables available on BigQuery if needed).
-
 - **Machine Learning model for prediction**: To predict product refund value
 for each transaction, we are using a machine learning model on GCP (BigQueryML)
 to predict the future refund value of a transaction before the end of the return
 policy window (before the transaction is no longer eligible for return).
-
 - **Full automation for model training & prediction process**: The whole system
 is orchestrated by a single cloud function that listens to entries in our logs
 table and effectively coordinates a status machine, triggering the appropriate
 query in the sequence.
-
 - **Simple deployment that can scale across brands and markets**: The entire
 solution is designed and developed to enable our advertisers to deploy their
 product return model on GCP in a scalable and efficient manner. This means
@@ -75,6 +105,31 @@ model training.
 - Compared with Crystalvalue which uses simple features, Product Return
 Predictor provides SQL queries that create more comprehensive features based on
 GA4 data for predictive model.
+
+## Advertiser Requirement for running the solution
+
+- Retail advertisers who are suffering from high return rate for their business.
+
+- Advertisers who are using value based bidding.
+
+- Advertisers who are open to using adjusted conversion value (calculated based on refund value prediction from the predictive model).
+
+-   Google Cloud Platform users - the following components on GCP are being used
+    for the project:
+    -   **BigQuery (including BigQuery ML)**: The solution heavily relies on
+        BigQuery for data storage, processing, and model training. All the SQL
+        code is built using BigQuery SQL Syntax. To use environment other than
+        GCP and BigQuery, you would need to do the data wrangling and
+        preprocessing on your own and then migrate your data to BigQuery.
+    -   **Vertex AI -> Workbench -> Notebook Instances**: The solution is
+        designed to be run on a Vertex AI notebook instance. The syntax used
+        for model training and prediction is built using BigQuery ML. If you
+        are not using Vertex AI workbench or BigQuery ML for model training and
+        prediction, it would be very difficult re-use the solution.
+    -   **Cloud Storage Bucket**: The solution uses Cloud Storage to store
+        intermediate files and trained pipelines. If you are not using Cloud
+        Storage, you would need to adjust the code to use your own storage
+        solution.
 
 ## Solution Workflow Details
 Two components of the overall process of product return predictor on Google
@@ -141,7 +196,7 @@ refresh their predictive model]**
   conversion value export ([check OCA - Offline Conversions Adjustment](https://developers.google.com/google-ads/api/docs/conversions/upload-adjustments#python)).
 
 ## Data Requirements
-**The solution uses GA4 data.**
+**The solution facilitates using GA4 data for feature engineering.**
 
 **Below are the components of the main sources used for the solution from GA4:**
 
@@ -153,7 +208,43 @@ color, brand, category, etc.
 - Transaction id, session id level web activity data (e.g. sessions, time spent
 on site, pageviews, etc.)
 
+**If GA4 data export is not being used**:
+
+You need to provide your own preprocessed data for model training and prediction. In this case, here’s the data requirement for the preprocessed training and prediction tables:
+
+- Both tables need to be aggregated at transaction_id and transaction_date level.
+- Both tables need to have the following field:
+  - **transaction_id**: unique identifier for the order.
+  - **transaction_date**: datetime field that indicates when the transaction took
+    place.
+- The table used in the ML training pipeline needs to have the following fields as labels (target variables):
+  - **refund_value**: monetary value of the transaction that get refunded. (e.g. if
+    a transaction has $100 transaction value, two items with transaction value
+    of $50 in total have been refunded, then in this case the refund value
+    should be $50)
+  - **refund_flag**: whether the transaction has been refunded (“0” as no refund,
+    “1” as refunded). Note: for partial refund, we will still label the field
+    as “1”.
+  - **Refund_proportion**: monetary value proportion of the transaction that got
+    refunded. In the previous example it would be 50/100 = 0.5.
+- Prediction table should have the same feature set as the training table.
+
 ## Feature Engineering
+
+When training the model, the product return predictor splits the data into two
+kinds based on user status:
+
+-   First-time users: users that made a purchase for the first time
+-   Existing users/customers: customers that have already made at least one
+    purchase in the past and are traceable via user id on GA4
+
+For the first type of users, we are focusing on creating features related to the
+current transaction.
+
+For the second type of users, on top of the features related to the current
+transaction, we can also create features that describe the past user behavior
+(e.g. past user return rate, past user return rate for a particular type of
+item, past user number of transactions and total transaction value, etc.)
 
 **Below are the features for the first-time users**:
 
@@ -327,16 +418,30 @@ The recommended activation strategy is to activate on smart bidding by adjusting
 the offline conversation value:
 
 **new offline conversion value = current transaction conversion value -
-predicted refund amount** <!-- disableFinding(LINE_OVER_80) -->
+predicted refund amount**
 
 ## Implementation Guide
-You can create a VertexAI notebook in VertexAI workbench. Clone the `product_return_predictor` package first.
 
-To understand how to implement the solution, you can go over the `model_training_demo_notebook.ipynb` for model training steps and `model_prediction_demo_notebook.ipynb` for model prediction steps. Model training process includes data preprocessing, feature engineering, model training and validation steps. Model prediction process includes data preprocessing, feature engineering and prediction generation steps.
+Before implementation, you need to:
+
+- Create a GCP storage bucket
+- Create a dataset on BigQuery for storing data and BQML model for the project
+
+You can create a VertexAI notebook in VertexAI workbench. Clone the
+`product_return_predictor` package first.
+
+To understand how to implement the solution, you can go over the
+`model_training_demo_notebook.ipynb` for model training steps and
+`model_prediction_demo_notebook.ipynb` for model prediction steps. Model
+training process includes data preprocessing, feature engineering, model
+training and validation steps. Model prediction process includes data
+preprocessing, feature engineering and prediction generation steps.
 
 Below is the step-by-step explanation of the notebook steps:
 
-Step 1 to 4 are common steps during training and prediction pipelines in both notebooks. After those 4 steps, training and prediction pipelines have completely different steps in the notebooks.
+Step 1 to 4 are common steps during training and prediction pipelines in both
+notebooks. After those 4 steps, training and prediction pipelines have
+completely different steps in the notebooks.
 
 #**Let us start with explanation for the first 4 steps.**
 
@@ -429,13 +534,13 @@ package that also needs to be installed when unavailable.
       `use_ga4_data_for_feature_engineering` is True, this is automatically
       set. Example Value: 'refund_proportion'. If not using GA4 data, ensure
       this matches the column name in your input table.
-    - `recency_of_transaction_for_prediction_in_days` (**prediction pipeline only parameter**): The number of days to
-      look back from the current date (or a defined cutoff) to consider
-      transactions for prediction. Transactions older than this window will not
-      be included in the prediction dataset. Example Value: 2 - this means we
-      are only considering the latest 2 days of transactions for making
-      predictions using pre-trained BigQuery ML model. How to Define: Adjust
-      this value based on your business needs for recent transactions.
+    - `recency_of_transaction_for_prediction_in_days` (**prediction pipeline
+      only parameter**): The number of days to look back from the current date
+      (or a defined cutoff) to consider transactions for prediction.
+      Transactions older than this window will not be included in the prediction
+      dataset.
+      Example Value: 2 - this means we are only considering the latest 2 days of
+      transactions for making predictions using pre-trained BigQuery ML model.
     - `return_policy_window_in_days`: The number of days within which a
       product can be returned according to your business's return policy. This
       influences how refunds are identified and considered for prediction.
@@ -446,15 +551,20 @@ package that also needs to be installed when unavailable.
       this to match your actual return policy.
     - `recency_of_data_in_days`: The number of days to look back in your
       historical data for model training. This parameter helps define the
-      training data window. Example Value: 365 (approximately 1 year) - this
-      means we are considering using past 1 year of historical transaction and
-      return data for model training. Choose a duration that provides
-      sufficient historical data for training relevant models. Note that
-      consumer behaviors and your products may have evolved over time therefore
-      when deciding on the number please also keep the recency and relevancy of
-      the data in mind.
+      training data window. Example Value: 365 (approximately 1 year) -
+      this means we are considering using past 1 year of historical transaction
+      and return data for model training. Choose a duration that provides
+      sufficient historical data for training relevant models. Note consumer
+      behaviors and your products may have evolved over time therefore when
+      deciding on the number please also keep the recency and relevancy of the
+      data in mind.
 
-  - **Google Analytics 4 (GA4) Raw Datasets Parameters**: These parameters are crucial if you plan to use GA4 data for feature engineering. When `use_ga4_data_for_feature_engineering` is True, the solution will use GA4 raw data as the source for feature engineering. When `use_ga4_data_for_feature_engineering` is false, there's no need to provided those parameters.
+  - **Google Analytics 4 (GA4) Raw Datasets Parameters**: These parameters are
+    crucial if you plan to use GA4 data for feature engineering. When
+    `use_ga4_data_for_feature_engineering` is True, the solution will use GA4
+    raw data as the source for feature engineering. When
+    `use_ga4_data_for_feature_engineering` is false, there's no need to provided
+    those parameters.
     - `ga4_project_id:` The Google Cloud Project ID where your GA4 raw dataset
     resides. This is typically a public dataset or a project you own containing
     your GA4 export. Example Value: 'bigquery-public-data'.
@@ -476,12 +586,39 @@ package that also needs to be installed when unavailable.
       predicts if a refund will occur, and if so, a regression model then
 
 - **Optional Parameters**: These parameters offer further customization and are often required under specific conditions, as noted in their descriptions.
-    - `ml_training_table_name` (**needed for both training & prediction pipelines**): The name of the BigQuery table containing your preprocessed, ML-ready data for model training. This parameter is required when `use_ga4_data_for_feature_engineering` is False. If you are providing your own preprocessed data, specify the BigQuery table name here and make sure the table is under your GCP project and dataset (provided based on project_id, dataset_id) for your model.
+    - `ml_training_table_name` (**needed for both training & prediction
+      pipelines**): The name of the BigQuery table containing your preprocessed,
+      ML-ready data for model training. This parameter is required when
+      `use_ga4_data_for_feature_engineering` is False. If you are providing your
+      own preprocessed data, specify the BigQuery table name here and make sure
+      the table is under your GCP project and dataset (provided based on
+      project_id, dataset_id) for your model.
         - **[Important Note]**: ml_training_table_name needs to be preprocessed properly with columns that represent refund value, refund proportion and refund flag.
-    - `invalid_value_threshold_for_row_removal` (**training pipeline only parameter**): The threshold (as a proportion) for removing rows during data cleaning. If a row has a proportion of invalid (e.g., null) values exceeding this threshold, the entire row will be removed. Default Value: 0.5 (50%) Adjust this value based on your data quality and tolerance for missing data.
-    - `invalid_value_threshold_for_column_removal`(**training pipeline only parameter**): The threshold (as a proportion) for removing columns during data cleaning. If a column has a proportion of invalid values exceeding this threshold, the entire column will be removed. Default Value: 0.95 (95%): Adjust this value based on your data quality. Columns with very high proportions of missing values might not be useful for modeling.
-    - `min_correlation_threshold_with_numeric_labels_for_feature_reduction`(**training pipeline only parameter**): The minimum correlation threshold used for feature reduction. Features with a correlation below this threshold with the numeric target labels (e.g., refund_value, refund_proportion) might be removed to simplify the model and prevent overfitting. Default Value: 0.1. Adjust this value to control the aggressiveness of feature reduction based on correlation.
-    - `ml_prediction_table_name`(**prediction pipeline only parameter**): The name of the BigQuery table containing your preprocessed data for generating predictions. This parameter is required when `use_ga4_data_for_feature_engineering` is False. If you are providing your own data for prediction, specify the BigQuery table name here.
+    - `invalid_value_threshold_for_row_removal` (**training pipeline only
+      parameter**): The threshold (as a proportion) for removing rows during
+      data cleaning. If a row has a proportion of invalid (e.g., null) values
+      exceeding this threshold, the entire row will be removed. Default Value:
+      0.5 (50%) Adjust this value based on your data quality and tolerance for
+      missing data.
+    - `invalid_value_threshold_for_column_removal` (**training pipeline only
+      parameter**): The threshold (as a proportion) for removing columns during
+      data cleaning. If a column has a proportion of invalid values exceeding
+      this threshold, the entire column will be removed. Default Value: 0.95
+      (95%): Adjust this value based on your data quality. Columns with very
+      high proportions of missing values might not be useful for
+      modeling.
+    - `min_correlation_threshold_with_numeric_labels_for_feature_reduction`
+      (**training pipeline only parameter**): The minimum correlation threshold
+      used for feature reduction. Features with a correlation below this
+      threshold with the numeric target labels (e.g., refund_value,
+      refund_proportion) might be removed to simplify the model and prevent
+      overfitting. Default Value: 0.1. Adjust this value to control the
+      aggressiveness of feature reduction based on correlation.
+    - `ml_prediction_table_name`(**prediction pipeline only parameter**): The
+      name of the BigQuery table containing your preprocessed data for
+      generating predictions. This parameter is required when
+      `use_ga4_data_for_feature_engineering` is False. If you are providing your
+      own data for prediction, specify the BigQuery table name here.
         - **[Important Note]**: ml_prediction_table_name needs to be preprocessed properly with columns that represent refund value, refund proportion and refund flag.
 
 - **Step 4**: Create a `ProductReturnPredictor` instance called `product_return`
@@ -492,66 +629,138 @@ class, please refer to `product_return_predictor.py` module under
 
 #**The following steps are implemented for training pipeline:**
 
-- **Step 5**: Data Processing and Feature Engineering for training pipeline(`data_processing_feature_engineering`)
-  This step is where your raw data gets transformed into a format suitable for machine learning. It involves several critical sub-steps, including data cleaning, feature creation (if using GA4 data), and preparing the data for model training or prediction.
+- **Step 5**: Data Processing and Feature Engineering for training
+  pipeline(`data_processing_feature_engineering`)
+  This step is where your raw data gets transformed into a format suitable for
+  machine learning. It involves several critical sub-steps, including data
+  cleaning, feature creation (if using GA4 data), and preparing the data for
+  model training or prediction.
+  The `data_processing_feature_engineering` method handles the heavy lifting of
+  preparing your data. It intelligently adapts its process based on whether
+  you're using Google Analytics 4 (GA4) data as your source or providing your
+  own preprocessed data.
 
-  The `data_processing_feature_engineering` method handles the heavy lifting of preparing your data. It intelligently adapts its process based on whether you're using Google Analytics 4 (GA4) data as your source or providing your own preprocessed data.
+  The `data_processing_feature_engineering` method orchestrates the following:
 
-    The `data_processing_feature_engineering` method orchestrates the following:
+    - **Determining Data Source**: It checks the
+      `use_ga4_data_for_feature_engineering parameter` (defined in the previous
+      step). This flag dictates whether the pipeline will query GA4 raw data or
+      use a pre-existing table you've provided.
 
-    - **Determining Data Source**: It checks the `use_ga4_data_for_feature_engineering parameter` (defined in the previous step). This flag dictates whether the pipeline will query GA4 raw data or use a pre-existing table you've provided.
-    - **Data Ingestion and Feature Creation (If using GA4 Data)**: If `use_ga4_data_for_feature_engineering` is True, the pipeline connects to your specified GA4 BigQuery project and dataset. It executes a series of BigQuery SQL queries (defined in `constant.GA4_DATA_PIPELINE_QUERY_TEMPLATES`) to extract relevant transaction data and engineer features directly within BigQuery. This includes calculating metrics like `refund_value`, `refund_flag`, and `refund_proportion`. It also segregates the data into two main categories:` _ml_ready_data_for_existing_customers` and `_ml_ready_data_for_first_time_purchase`, which are then further processed.
+    - **Data Ingestion and Feature Creation (If using GA4 Data)**: If
+      `use_ga4_data_for_feature_engineering` is True, the pipeline connects to
+      your specified GA4 BigQuery project and dataset. It executes a series of
+      BigQuery SQL queries (defined in
+      `constant.GA4_DATA_PIPELINE_QUERY_TEMPLATES`) to extract relevant
+      transaction data and engineer features directly within BigQuery. This
+      includes calculating metrics like `refund_value`, `refund_flag`, and
+      `refund_proportion`. It also segregates the data into two main
+      categories:` _ml_ready_data_for_existing_customers` and
+      `_ml_ready_data_for_first_time_purchase`, which are then further
+      processed.
 
     - **Data Cleaning and Preprocessing**: The extracted data is then loaded into Pandas DataFrames. A comprehensive data cleaning process is applied, which includes:
         - **Type Conversion**: Ensuring columns have the correct data types (e.g., string, numeric, date).
         - **Missing Value Imputation**: Filling missing string values with `'unknown'` and numeric values with 0.
-        - **Invalid Data Removal (for Training)**: If you are running the training pipeline, rows and columns with a high proportion of invalid or zero values are identified and potentially removed based on thresholds (invalid_value_threshold_for_row_removal and invalid_value_threshold_for_column_removal). This step is skipped during the prediction pipeline to avoid altering the data structure unexpectedly.
-    - **Feature Selection**: A feature selection pipeline is applied to identify and retain the most relevant features for modeling based on their correlation with target variables. This pipeline is trained during the training phase and then saved to Google Cloud Storage for consistent use during prediction.
+        - **Invalid Data Removal (for Training)**: If you are running the
+          training pipeline, rows and columns with a high proportion of invalid
+          or zero values are identified and potentially removed based on
+          thresholds (invalid_value_threshold_for_row_removal and
+          invalid_value_threshold_for_column_removal). This step is skipped
+          during the prediction pipeline to avoid altering the data structure
+          unexpectedly.
+    - **Feature Selection**: A feature selection pipeline is applied to identify
+      and retain the most relevant features for modeling based on their
+      correlation with target variables. This pipeline is trained during the
+      training phase and then saved to Google Cloud Storage for consistent use
+      during prediction.
 
-    - **Data Transformation (Scaling and Resampling)**: Features are scaled (e.g., using `MinMaxScaler`) to normalize their ranges, which can improve model performance. If there's a significant imbalance in your target variable (e.g., very few refunds), data resampling techniques may be applied to balance the classes. This data processing pipeline is also trained and saved for reusability.
+    - **Data Transformation (Scaling and Resampling)**: Features are scaled
+      (e.g., using `MinMaxScaler`) to normalize their ranges, which can improve
+      model performance. If there's a significant imbalance in your target
+      variable (e.g., very few refunds), data resampling techniques may be
+      applied to balance the classes. This data processing pipeline is also
+      trained and saved for reusability.
 
-    - **Train/Test Split**: For the training pipeline, the data is split into training and testing sets based on your specified `train_test_split_test_size_proportion` and `transaction_date_col` (for chronological splitting). This ensures your model is evaluated on unseen data.
-
+    - **Train/Test Split**: For the training pipeline, the data is split into
+      training and testing sets based on your specified
+      `train_test_split_test_size_proportion` and `transaction_date_col` (for
+      chronological splitting). This ensures your model is evaluated on unseen
+      data.
     - The processed, ML-ready data for both existing and first-time customers is then saved back to BigQuery in your specified dataset_id.
 
-    - **Handling User-Provided Preprocessed Data (If not using GA4 Data)**: If `use_ga4_data_for_feature_engineering` is False, the solution assumes you've already performed the initial data preparation and provides an ML-ready table. It uses a BigQuery SQL query to read your `ml_training_table_name` (or `ml_prediction_table_name`) and prepares it by creating a train_test split column based on the `transaction_id_col` and `train_test_split_test_size_proportion`. This data is then saved as ML-ready tables in BigQuery.
+    - **Handling User-Provided Preprocessed Data (If not using GA4 Data)**: If
+      `use_ga4_data_for_feature_engineering` is False, the solution assumes
+      you've already performed the initial data preparation and provides an
+      ML-ready table. It uses a BigQuery SQL query to read your
+      `ml_training_table_name` (or `ml_prediction_table_name`) and prepares it
+      by creating a train_test split column based on the `transaction_id_col`
+      and `train_test_split_test_size_proportion`. This data is then saved as
+      ML-ready tables in BigQuery.
 
-    For this step, you'll explicitly provide values for the following parameters when calling the function:
+    For this step, you'll explicitly provide values for the following parameters
+    when calling the function:
 
     - `data_pipeline_type`: This crucial parameter tells the pipeline whether it's preparing data for model training or generating predictions.
-        - Accepted Values:
-            - `constant.DataPipelineType.TRAINING`: Select this when you are training a new model. The pipeline will perform data cleaning, feature engineering, and split data into training and testing sets. It will also train and save the data preprocessing and feature selection pipelines to Google Cloud Storage.
-            - `constant.DataPipelineType.PREDICTION`: Choose this when you want to generate predictions using a pre-trained model. The pipeline will load the saved preprocessing and feature selection pipelines from Cloud Storage and apply them to your new data, without splitting into train/test sets.
-        - How to Provide: Directly use `constant.DataPipelineType.TRAINING` or`constant.DataPipelineType.PREDICTION`.
 
-    - `recency_of_transaction_for_prediction_in_days`(**prediction pipeline only parameter**): An integer representing the number of past days to include transactions for prediction purposes. This helps focus the prediction on recent customer activity. How to Provide: An integer value (e.g., 2).
+      - `constant.DataPipelineType.TRAINING`: Select this when you are
+        training a new model. The pipeline will perform data cleaning,
+        feature engineering, and split data into training and testing
+        sets. It will also train and save the data preprocessing and
+        feature selection pipelines to Google Cloud Storage.
+      - `constant.DataPipelineType.PREDICTION`: Choose this when you want to
+        generate predictions using a pre-trained model. The pipeline will load
+        the saved preprocessing and feature selection pipelines from Cloud
+        Storage and apply them to your new data.
+      - How to Provide: Directly use `constant.DataPipelineType.TRAINING` or
+      `constant.DataPipelineType.PREDICTION`.
+
+    - `recency_of_transaction_for_prediction_in_days`(**prediction pipeline
+      only parameter**): An integer representing the number of past days to
+      include transactions for prediction purposes. This helps focus the
+      prediction on recent customer activity. How to Provide: An integer value
+      (e.g., 2).
         - Note: This should be provided during Step 3. There's no need to provide value for this parameter in the training pipeline.
 
-    - `return_policy_window_in_days`: An integer indicating your product return policy window in days. This is used to define the timeframe within which a return is considered valid for labeling purposes in the training data. An integer value (e.g., 30).
+    - `return_policy_window_in_days`: An integer indicating your product return
+      policy window in days. This is used to define the timeframe within which a
+      return is considered valid for labeling purposes in the training data. An
+      integer value (e.g., 30).
         - Note: This should be provided during Step 3.
 
-    - `recency_of_data_in_days`: An integer specifying the number of historical days of data to consider for model training. This helps define the scope of your training dataset. How to Provide: An integer value (e.g., 1800 for approximately 5 years).
+    - `recency_of_data_in_days`: An integer specifying the number of historical
+      days of data to consider for model training. This helps define the scope
+      of your training dataset. How to Provide: An integer value (e.g., 1800
+      for approximately 5 years).
         - Note: This should be provided during Step 3.
 
-  **Important Considerations:**
+    **Important Considerations:**
 
-  - **Pre-defined Parameters**: This step heavily relies on the parameters you've set up in the initial configuration (e.g., ga4_project_id, project_id, dataset_id, gcp_bucket_name, `use_ga4_data_for_feature_engineering`, `transaction_date_col`, etc.). Ensure those are correctly defined before running this step.
+  - **Pre-defined Parameters**: This step heavily relies on the parameters
+    you've set up in the initial configuration (e.g., ga4_project_id,
+    `use_ga4_data_for_feature_engineering`, `transaction_date_col`, etc.).
+    Ensure those are correctly defined before running this step.
 
-  - **Data Availability**: Make sure your GA4 data (if `use_ga4_data_for_feature_engineering` is True) or your ml_training_table_name/ml_prediction_table_name (if `use_ga4_data_for_feature_engineering` is False) are accessible in BigQuery.
+  - **Data Availability**: Make sure your GA4 data (if
+    `use_ga4_data_for_feature_engineering` is True) or your
+    ml_training_table_name/ml_prediction_table_name (if
+    `use_ga4_data_for_feature_engineering` is False) are accessible in BigQuery.
 
   - **If you have done feature engineering yourself without using the ga4 data export directly**:
       - You will still need to run the following code to prep your dataset for modeling However, all the data cleaning, validation, feature engineering, data scaling steps will be skipped.
-      - Also, make use you turn **`use_ga4_data_for_feature_engineering`** to False, and make sure set the values for the following parameters when creating **ProductReturnPredictor** instance:
+
           - `ml_training_table_name` (**needed for both training & prediction pipelines**)
           - `ml_prediction_table_name` (**prediction pipeline only parameter**)
           - `transaction_date_col`
           - `transaction_id_col`
-          - `refund_value_col`
           - `refund_flag_col`
           - `refund_proportion_col`
-  - **If you decide to rely on the solution to do feature engineering for you**, then make sure to turn **`use_ga4_data_for_feature_engineering`** to True. In this case there's no need to specify the parameters listed above.
-
-  By understanding this step, you'll have a clear picture of how your raw data evolves into the clean, transformed, and ML-ready format necessary for building powerful prediction models!
+  - **If you decide to rely on the solution to do feature engineering for you**,
+    then make sure to turn **`use_ga4_data_for_feature_engineering`** to True.
+    In this case there's no need to specify the parameters listed above.
+    By understanding this step, you'll have a clear picture of how your raw
+    data evolves into the clean, transformed, and ML-ready format necessary for
+    building powerful prediction models!
 
 - **Step 6**: Model Training, Evaluation, and Prediction
   (model_training_pipeline_evaluation_and_prediction):
@@ -636,31 +845,44 @@ class, please refer to `product_return_predictor.py` module under
 
     The method returns several objects:
 
-    - `performance_metrics_dfs`: A dictionary containing DataFrames of model performance metrics for each trained model.
-    - `model_prediction_df`: A DataFrame with the model's predictions on the training data.
-    - `predictions_actuals_distribution`: A dictionary containing descriptive statistics of the prediction and actual distributions.
-    - `feature_importance_dfs`: A dictionary containing Data Frames of feature importance for each trained model.
-  - What You Need to Provide: When calling model_training_pipeline_evaluation_and_prediction, you'll provide the following:
-    - `is_two_step_model`: A boolean value that determines whether to use a two-step modeling approach.
+    - `performance_metrics_dfs`: A dictionary containing DataFrames of model
+    performance metrics for each trained model.
+    - `model_prediction_df`: A DataFrame with the model's predictions on the
+    training data.
+    - `predictions_actuals_distribution`: A dictionary containing descriptive
+    statistics of the prediction and actual distributions.
+    - `feature_importance_dfs`: A dictionary containing Data Frames of feature
+    importance for each trained model.
+  - What You Need to Provide: When calling
+  model_training_pipeline_evaluation_and_prediction, you'll provide the
+  following:
+    - `is_two_step_model`: A boolean value that determines whether to use a
+    two-step modeling approach.
         - Accepted Values:
             - True: The solution will first train a classification model to
               predict if a refund will occur (refund_flag), and then a
               regression model to predict the refund amount (refund_value or
               refund_proportion) for transactions identified as refunds.
-            - False: The solution will train a single regression model to directly predict the refund_value or refund_proportion.
+            - False: The solution will train a single regression model to
+            directly predict the refund_value or refund_proportion.
 
-    - `regression_model_type`: Specifies the type of regression model to use for predicting refund values.
-        - Accepted Values: Values from `constant.LinearBigQueryMLModelType` (e.g.,
-          LINEAR_REGRESSION), `constant.DNNBigQueryMLModelType` (e.g.,
+    - `regression_model_type`: Specifies the type of regression model to use for
+    predicting refund values.
+        - Accepted Values: Values from `constant.LinearBigQueryMLModelType`
+          (e.g., LINEAR_REGRESSION), `constant.DNNBigQueryMLModelType` (e.g.,
           DNN_REGRESSOR), or `constant.BoostedTreeBigQueryMLModelType` (e.g.,
-        - Use the appropriate constant, e.g., `constant.LinearBigQueryMLModelType.LINEAR_REGRESSION`.
+        - Use the appropriate constant, e.g.,
+        `constant.LinearBigQueryMLModelType.LINEAR_REGRESSION`.
 
-    - `binary_classifier_model_type`: Specifies the type of binary classification model to use for predicting refund flags (if `is_two_step_model` is True).
-        - Accepted Values: Values from `constant.LinearBigQueryMLModelType` (e.g.,
-          LOGISTIC_REGRESSION), `constant.DNNBigQueryMLModelType` (e.g.,
+    - `binary_classifier_model_type`: Specifies the type of binary
+    classification model to use for predicting refund flags (if
+    `is_two_step_model` is True).
+        - Accepted Values: Values from `constant.LinearBigQueryMLModelType`
+          (e.g., LOGISTIC_REGRESSION), `constant.DNNBigQueryMLModelType` (e.g.,
           DNN_CLASSIFIER), or `constant.BoostedTreeBigQueryMLModelType` (e.g.,
           BOOSTED_TREE_CLASSIFIER).
-        - Use the appropriate constant, e.g., `constant.LinearBigQueryMLModelType`.LOGISTIC_REGRESSION.
+        - Use the appropriate constant, e.g.,
+        `constant.LinearBigQueryMLModelType`.LOGISTIC_REGRESSION.
 
     - `first_time_purchase`: A boolean flag that, when
       `use_ga4_data_for_feature_engineering` is True, tells the pipeline whether
@@ -668,7 +890,8 @@ class, please refer to `product_return_predictor.py` module under
       customers. This allows for tailored models based on customer behavior.
       This parameter is ignored if you're not using GA4 data.
 
-        - How to Provide: Set to True or False if `self.use_ga4_data_for_feature_engineering` is True.
+        - How to Provide: Set to True or False if
+        `self.use_ga4_data_for_feature_engineering` is True.
 
     - `num_tiers_to_create_avg_prediction`: The number of tiers (or bins) to
       divide the predictions into for the "tier-level average prediction vs.
@@ -710,7 +933,8 @@ class, please refer to `product_return_predictor.py` module under
 
 #**The following steps are implemented for prediction pipeline:**
 
-- **Step 5 Create Prediction Pipeline Data**: Processing and Feature Engineering for Prediction (data_processing_feature_engineering)
+- **Step 5 Create Prediction Pipeline Data**: Processing and Feature
+Engineering for Prediction (data_processing_feature_engineering)
 
   This section details how the `data_processing_feature_engineering` method
   operates when you are preparing data for generating predictions with your
@@ -719,44 +943,62 @@ class, please refer to `product_return_predictor.py` module under
   during model training, ensuring your new prediction data is in the correct
   format.
 
-    When `data_pipeline_type` is set to `constant.DataPipelineType.PREDICTION`,
-    the `data_processing_feature_engineering` method performs the following:
+  When `data_pipeline_type` is set to `constant.DataPipelineType.PREDICTION`,
+  the `data_processing_feature_engineering` method performs the following:
 
-    - **Determining Data Source**: It checks the `use_ga4_data_for_feature_engineering` parameter to identify the source of your raw data.
-    - **Data Ingestion and Feature Creation (If using GA4 Data)**: If `use_ga4_data_for_feature_engineering` is True, the pipeline connects to your specified GA4 BigQuery project and dataset (using `self.ga4_project_id` and `self.ga4_dataset_id`). It executes the same BigQuery SQL queries used during training to extract and engineer relevant transaction features from ga4 data. These queries are specifically formatted for the prediction pipeline (`data_pipeline_typ`e.value will be 'prediction'). This ensures that the features created for prediction data are consistent with those the model was trained on. The processed data (for both "existing customers" and "first-time purchases") is then loaded into Pandas DataFrames. If `use_ga4_data_for_feature_engineering` is False, then `ml_prediction_table_name` needs to be provided and the prediction table should have the same format and same features as the provided ml training data.
-    - **Applying Pre-trained Pipelines**: Unlike the training phase where
-      pipelines are fit (learned), here, the already trained data preprocessing
-      and feature selection pipelines are loaded from your Google Cloud Storage
-      bucket (using `self.gcp_storage` and `self.gcp_bucket_name`). These
-      pre-trained pipelines ensure that data scaling, categorical encoding, and
-      feature selection are applied consistently to your new prediction data,
-      preventing data leakage or inconsistencies. This means:
-        - **Data Cleaning**: Data types are converted, and missing values are
-          imputed (e.g., 'unknown' for strings, 0 for numerics). Rows or columns
-          with high invalid values are NOT removed at this stage to prevent loss
-          of prediction instances; the model is expected to handle them based on
-          how it was trained.
-        - **Feature Selection**: Only the features identified as important
-          during the training phase are retained.
-        - **Data Transformation**: Data is scaled and transformed using the
-          exact transformations learned from the training data (e.g.,
-          `MinMaxScaler` parameters from training are applied).
+  - **Determining Data Source**: It checks the
+  `use_ga4_data_for_feature_engineering` parameter to identify the source of
+  your raw data.
 
-    -   The final preprocessed, ML-ready data for prediction is then saved to
-        BigQuery in your dataset_id, typically in tables named something like
-        PREDICTION_ml_ready_data_for_existing_customers and
-        PREDICTION_ml_ready_data_for_first_time_purchase.
-    -   **Handling User-Provided Preprocessed Data (If not using GA4 Data)**: If
-        `use_ga4_data_for_feature_engineering` is False, the solution reads the
-        ml_prediction_table_name you've provided. The processed data is then
-        saved back to BigQuery in your dataset_id, usually in a table named
-        `PREDICTION_ml_data_your_table_name_with_target_variable_refund_value`.
+  - **Data Ingestion and Feature Creation (If using GA4 Data)**: If
+    `use_ga4_data_for_feature_engineering` is True, the pipeline connects to
+    your specified GA4 BigQuery project and dataset (using
+    `self.ga4_project_id` and `self.ga4_dataset_id`). It executes the same
+    BigQuery SQL queries used during training to extract and engineer relevant
+    transaction features from ga4 data. These queries are specifically
+    formatted for the prediction pipeline (`data_pipeline_typ`e.value will be
+    'prediction'). This ensures that the features created for prediction data
+    are consistent with those the model was trained on. The processed data
+    (for both "existing customers" and "first-time purchases") is then loaded
+    into Pandas DataFrames. If `use_ga4_data_for_feature_engineering` is
+    False, then `ml_prediction_table_name` needs to be provided and the
+    prediction table should have the same format and same features as the
+    provided ml training data.
+
+  - **Applying Pre-trained Pipelines**: Unlike the training phase where
+    pipelines are fit (learned), here, the already trained data preprocessing
+    and feature selection pipelines are loaded from your Google Cloud Storage
+    bucket (using `self.gcp_storage` and `self.gcp_bucket_name`). These
+    pre-trained pipelines ensure that data scaling, categorical encoding, and
+    feature selection are applied consistently to your new prediction data,
+    preventing data leakage or inconsistencies. This means:
+      - **Data Cleaning**: Data types are converted, and missing values are
+        imputed (e.g., 'unknown' for strings, 0 for numerics). Rows or columns
+        with high invalid values are NOT removed at this stage to prevent loss
+        of prediction instances; the model is expected to handle them based on
+        how it was trained.
+      - **Feature Selection**: Only the features identified as important
+        during the training phase are retained.
+      - **Data Transformation**: Data is scaled and transformed using the
+        exact transformations learned from the training data (e.g.,
+        `MinMaxScaler` parameters from training are applied).
+
+      The final preprocessed, ML-ready data for prediction is then saved to
+      BigQuery in your dataset_id, typically in tables named something like
+      PREDICTION_ml_ready_data_for_existing_customers and
+      PREDICTION_ml_ready_data_for_first_time_purchase.
+  -   **Handling User-Provided Preprocessed Data (If not using GA4 Data)**: If
+      `use_ga4_data_for_feature_engineering` is False, the solution reads the
+      ml_prediction_table_name you've provided. The processed data is then
+      saved back to BigQuery in your dataset_id, usually in a table named
+      `PREDICTION_ml_data_your_table_name_with_target_variable_refund_value`.
 
     The goal of this prediction pipeline step is purely to prepare new, unseen
     data in the exact same way as the training data, so the model can make
     accurate and reliable predictions.
 
--  **Step 6 Prediction Pipeline**: Prediction Generation (`prediction_pipeline_prediction_generation`)
+-  **Step 6 Prediction Pipeline**: Prediction Generation (
+  `prediction_pipeline_prediction_generation`)
 
   This critical step of the solution leverages your previously trained BigQuery
   ML models to generate real-time (or batch) predictions on new, unseen data.
@@ -768,50 +1010,55 @@ class, please refer to `product_return_predictor.py` module under
   orchestrates the following:
 
   - Identify Input Data for Prediction: The method first determines the BigQuery
-  table containing the preprocessed, ML-ready data for which you want to generate
-  predictions.
+    table containing the preprocessed, ML-ready data for which you want to
+    generate predictions.
 
       - If `use_ga4_data_for_feature_engineering` is True, it fetches data from
-      the tables prepared by the data_processing_feature_engineering method (e.g.,
-      `PREDICTION_ml_ready_data_for_first_time_purchase` or
+      the tables prepared by the data_processing_feature_engineering method
+      (e.g., `PREDICTION_ml_ready_data_for_first_time_purchase` or
       `PREDICTION_ml_ready_data_for_existing_customers`). The choice depends on
       the first_time_purchase flag you provide.
       - If `use_ga4_data_for_feature_engineering` is False, it uses the
       ml_prediction_table_name you've specified, which should contain your own
       preprocessed data.
       - It also identifies the name of the training table
-      (preprocessed_training_table_name) to correctly reference the trained
-      models in BigQuery, as BigQuery ML models are often associated with their
-      training data.
+        (preprocessed_training_table_name) to correctly reference the trained
+        models in BigQuery, as BigQuery ML models are often associated with
+        their training data.
 
-  - Model Selection and Prediction Execution (`model.bigquery_ml_model_prediction`) based on the `is_two_step_model` parameter:
-      - **Single-Step Model**: If `is_two_step_model` is False, it identifies the
-      relevant pre-trained regression model (based on regression_model_type) in
-      BigQuery.
+  - Model Selection and Prediction Execution (
+    `model.bigquery_ml_model_prediction`) based on the `is_two_step_model`
+    parameter:
+      - **Single-Step Model**: If `is_two_step_model` is False, it identifies
+      the relevant pre-trained regression model (based on
+      regression_model_type) in BigQuery.
       - **Two-Step Model**: If `is_two_step_model` is True, it identifies both
       the pre-trained binary classification model (based on
       binary_classifier_model_type) and the regression model.
       - It then constructs and executes BigQuery ML `ML.PREDICT` queries. These
-      queries apply the chosen trained model(s) directly within BigQuery to your
-      new prediction data.
+        queries apply the chosen trained model(s) directly within BigQuery to
+        your new prediction data.
       - For a two-step model, the classification model first predicts the
-      likelihood of a refund (refund_flag). If the predicted probability exceeds
-      the `probability_threshold_for_prediction`, the regression model then
-      predicts the refund_value or refund_proportion.
+        likelihood of a refund (refund_flag). If the predicted probability
+        exceeds the `probability_threshold_for_prediction`, the regression
+        model then predicts the refund_value or refund_proportion.
 
-  - **Prediction Output**: The results of these BigQuery ML prediction queries are
-  written to a new BigQuery table within your specified dataset_id. The name of
-  this table will be derived from the preprocessed_table_name and the target
+  The results of these BigQuery ML prediction queries
+  are written to a new BigQuery table within your specified dataset_id. The name
+  of this table will be derived from the preprocessed_table_name and the target
   variables (e.g.,
   `prediction_ml_data_your_table_name_with_target_variable_refund_value`).
-  - **Logging**: The process logs important information, such as the BigQuery job
-  ID for the prediction query and the name of the destination table where your
-  predictions are stored. This is helpful for monitoring and debugging.
-  - **The primary outcome of this step** is a BigQuery table filled with your
-  model's predictions for the input data, ready for downstream consumption,
-  analysis, or integration into other systems.
 
-- When calling `prediction_pipeline_prediction_generation`, you'll provide the following:
+  - **Logging**: The process logs important information, such as the BigQuery
+    job ID for the prediction query and the name of the destination table where
+    your predictions are stored. This is helpful for monitoring and
+    debugging.
+  - **The primary outcome of this step** is a BigQuery table filled with your
+    model's predictions for the input data, ready for downstream consumption,
+    analysis, or integration into other systems.
+
+- When calling `prediction_pipeline_prediction_generation`, you'll provide the
+following:
 
     - `is_two_step_model`: A boolean value indicating whether the model used
     for prediction is a two-step model (classification followed by regression)
@@ -849,4 +1096,3 @@ class, please refer to `product_return_predictor.py` module under
     (dictionary) providing file paths to the BigQuery ML SQL query templates
     for prediction operations. This parameter typically uses a default value
     provided by the solution (`constant.BQML_QUERY_TEMPLATE_FILES)`.
-
