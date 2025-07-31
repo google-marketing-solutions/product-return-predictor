@@ -11,7 +11,8 @@
 [Data Requirements](#data-requirements) •
 [Feature Engineering](#feature-engineering) •
 [Model Training and Refresh](#model-training-and-refresh) •
-[Prediction and Activation](#prediction-and-activation)
+[Prediction and Activation](#prediction-and-activation) •
+[Implementation Guide](#implementation-guide)
 
 ## Problem Statement
 We want to help retailers reduce the rate of customers returning their products,
