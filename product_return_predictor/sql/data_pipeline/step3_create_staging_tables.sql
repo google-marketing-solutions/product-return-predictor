@@ -95,9 +95,8 @@ AS (
       WHERE item_revenue > 0
       GROUP BY 1, 2
     ),
-    PastItemRefundHistoryWithinCurrentTransaction AS (
+    PastItemRefundHistoryRelativeToCurrentTransaction AS (
       SELECT
-        TransItemData.transaction_id,
         TransItemData.transaction_date,
         TransItemData.item_id,
         SUM(PastProductRefundHistory.refund_count) AS past_product_refund_count,
@@ -111,7 +110,7 @@ AS (
         ON
           TransItemData.item_name = PastProductRefundHistory.item_name
           AND TransItemData.transaction_date > PastProductRefundHistory.transaction_date
-      GROUP BY 1, 2, 3
+      GROUP BY 1, 2
     )
   SELECT
     TransLevelItemLevelStats.transaction_id,
@@ -139,14 +138,14 @@ AS (
     IFNULL(stddev_samp(quantity), 0) AS std_quantity,
     SUM(CAST(discounted_product_flag AS INT)) AS discounted_product_count,
     RefundRate(
-      PastItemRefundHistoryWithinCurrentTransaction.past_product_refund_count,
+      PastItemRefundHistoryRelativeToCurrentTransaction.past_product_refund_count,
       PastGeneralRefundHistory.past_grand_avg_refund_rate,
-      PastItemRefundHistoryWithinCurrentTransaction.past_product_transaction_count)
+      PastItemRefundHistoryRelativeToCurrentTransaction.past_product_transaction_count)
       AS calculated_past_product_refund_rate,
     RefundRate(
-      PastItemRefundHistoryWithinCurrentTransaction.past_product_refund_amt,
+      PastItemRefundHistoryRelativeToCurrentTransaction.past_product_refund_amt,
       PastGeneralRefundHistory.past_grand_avg_refund_amt_proportion,
-      PastItemRefundHistoryWithinCurrentTransaction.past_product_revenue_amt)
+      PastItemRefundHistoryRelativeToCurrentTransaction.past_product_revenue_amt)
       AS calculated_past_product_refund_amt_proportion,
     AVG(SameItemInTrans.max_same_item_item_quantity) AS max_same_item_item_quantity,
     AVG(SameItemInTrans.min_same_item_item_quantity) AS min_same_item_item_quantity,
@@ -159,13 +158,11 @@ AS (
   FROM
     `{project_id}.{dataset_id}.{data_pipeline_type}_preprocessed_transaction_id_and_item_level_stats`
       AS TransLevelItemLevelStats
-  LEFT JOIN PastItemRefundHistoryWithinCurrentTransaction
+  LEFT JOIN PastItemRefundHistoryRelativeToCurrentTransaction
     ON
-      TransLevelItemLevelStats.transaction_id
-        = PastItemRefundHistoryWithinCurrentTransaction.transaction_id
-      AND TransLevelItemLevelStats.transaction_date
-        = PastItemRefundHistoryWithinCurrentTransaction.transaction_date
-      AND TransLevelItemLevelStats.item_id = PastItemRefundHistoryWithinCurrentTransaction.item_id
+      TransLevelItemLevelStats.transaction_date
+        = PastItemRefundHistoryRelativeToCurrentTransaction.transaction_date
+      AND TransLevelItemLevelStats.item_id = PastItemRefundHistoryRelativeToCurrentTransaction.item_id
   LEFT JOIN
     `{project_id}.{dataset_id}.{data_pipeline_type}_preprocessed_daily_level_past_transaction_refund_data`
       AS PastGeneralRefundHistory
