@@ -131,6 +131,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             ),
         )]
     )
+    self.feature_selection_pipeline.__sklearn_is_fitted__ = True
     self.data_transformation_pipeline = pipeline.Pipeline(
         steps=[
             (
@@ -471,7 +472,8 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             get_feature_names_out=mock.Mock(
                 return_value=['color_red', 'color_blue', 'color_green', 'price']
             )
-        )
+        ),
+        'resampler': mock.Mock(),
     }
     result = data_cleaning_feature_selection._data_transformation(
         fit_data_bool=True,

@@ -722,6 +722,7 @@ def _data_transformation(
   """
   if fit_data_bool:
     x_preprocessed = custom_data_transformer.fit_transform(x, y)
+    custom_data_transformer.named_steps['resampler'].fitted_ = True
   else:
     x_preprocessed = custom_data_transformer.transform(x)
 
@@ -1060,6 +1061,7 @@ def _feature_selection_training_prediction_pipeline(
   )
   if not use_prediction_pipeline:
     custom_feature_selector.fit(df)
+    custom_feature_selector.named_steps['feature_selection'].fitted_ = True
     utils.save_pipeline_to_cloud_storage(
         trained_pipeline=custom_feature_selector,
         gcp_storage_client=gcp_storage_client,
