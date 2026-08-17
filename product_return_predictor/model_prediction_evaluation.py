@@ -376,7 +376,7 @@ def plot_tier_level_product_return_actual_vs_prediction_comparison(
     training_comparison_df: pd.DataFrame,
     testing_comparison_df: pd.DataFrame,
     **kwargs,
-) -> matplotlib.figure.Figure:
+) -> matplotlib.figure.Figure:  # pyrefly: ignore[bad-return]
   """Plot tier level product return actual vs prediction comparison in bar chart.
 
   Args:

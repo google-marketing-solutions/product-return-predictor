@@ -672,17 +672,17 @@ def _get_data_transformation_pipeline(
   if use_prediction_pipeline:
     try:
       return utils.load_pipeline_from_cloud_storage(
-          gcp_storage_client=gcp_storage_client,
-          gcp_bucket_name=gcp_bucket_name,
-          pipeline_name=pipeline_name,
+          gcp_storage_client=gcp_storage_client,  # pyrefly: ignore[bad-argument-type]
+          gcp_bucket_name=gcp_bucket_name,  # pyrefly: ignore[bad-argument-type]
+          pipeline_name=pipeline_name,  # pyrefly: ignore[bad-argument-type]
       )
     except Exception as e:
       raise RuntimeError(f'Error loading pre-trained pipeline: {e}') from e
   else:
     return _create_data_transformation_pipeline(
-        label_type=label_type,
-        categorical_features=categorical_features,
-        numerical_features=numerical_features,
+        label_type=label_type,  # pyrefly: ignore[bad-argument-type]
+        categorical_features=categorical_features,  # pyrefly: ignore[bad-argument-type]
+        numerical_features=numerical_features,  # pyrefly: ignore[bad-argument-type]
     )
 
 
@@ -739,8 +739,8 @@ def _data_transformation(
       right_index=True,
   )
   if y is not None:
-    y = pd.merge(data_index, y, left_index=True, right_index=True)
-    ml_ready_data = pd.merge(x_preprocessed, y, on=id_cols)
+    y = pd.merge(data_index, y, left_index=True, right_index=True)  # pyrefly: ignore[bad-assignment]
+    ml_ready_data = pd.merge(x_preprocessed, y, on=id_cols)  # pyrefly: ignore[bad-argument-type]
   else:
     ml_ready_data = x_preprocessed
 
@@ -829,8 +829,8 @@ def _data_preprocessing_training_prediction_pipeline(
           'for training pipeline.'
       )
   if not use_prediction_pipeline:
-    categorical_features = [f for f in categorical_features if f in df.columns]
-    numerical_features = [f for f in numerical_features if f in df.columns]
+    categorical_features = [f for f in categorical_features if f in df.columns]  # pyrefly: ignore[not-iterable]
+    numerical_features = [f for f in numerical_features if f in df.columns]  # pyrefly: ignore[not-iterable]
   custom_data_transformer = _get_data_transformation_pipeline(
       use_prediction_pipeline=use_prediction_pipeline,
       numerical_features=numerical_features,
@@ -997,9 +997,9 @@ def _get_feature_selection_pipeline(
   if use_prediction_pipeline:
     try:
       return utils.load_pipeline_from_cloud_storage(
-          gcp_storage_client=gcp_storage_client,
-          gcp_bucket_name=gcp_bucket_name,
-          pipeline_name=pipeline_name,
+          gcp_storage_client=gcp_storage_client,  # pyrefly: ignore[bad-argument-type]
+          gcp_bucket_name=gcp_bucket_name,  # pyrefly: ignore[bad-argument-type]
+          pipeline_name=pipeline_name,  # pyrefly: ignore[bad-argument-type]
       )
     except Exception as e:
       raise RuntimeError(
@@ -1007,9 +1007,9 @@ def _get_feature_selection_pipeline(
       ) from e
   else:
     return _create_feature_selection_pipeline(
-        id_cols=id_cols,
-        labels=labels,
-        label_types=label_types,
+        id_cols=id_cols,  # pyrefly: ignore[bad-argument-type]
+        labels=labels,  # pyrefly: ignore[bad-argument-type]
+        label_types=label_types,  # pyrefly: ignore[bad-argument-type]
         min_correlation_threshold_with_numeric_labels_for_feature_reduction=min_correlation_threshold_with_numeric_labels_for_feature_reduction,
     )
 
@@ -1183,15 +1183,15 @@ def data_preprocessing_for_ml(
       dataset_id=dataset_id,
       table_name=table_name,
       id_cols=id_cols,
-      numeric_labels=numeric_labels,
-      categorical_labels=categorical_labels,
+      numeric_labels=numeric_labels,  # pyrefly: ignore[bad-argument-type]
+      categorical_labels=categorical_labels,  # pyrefly: ignore[bad-argument-type]
       location=location,
       invalid_value_threshold_for_row_removal=invalid_value_threshold_for_row_removal,
       invalid_value_threshold_for_column_removal=invalid_value_threshold_for_column_removal,
       use_prediction_pipeline=use_prediction_pipeline,
   )
 
-  result = _get_labels_and_types(numeric_labels, categorical_labels)
+  result = _get_labels_and_types(numeric_labels, categorical_labels)  # pyrefly: ignore[bad-argument-type]
   if use_prediction_pipeline:
     numerical_features, categorical_features = None, None
   else:
@@ -1203,7 +1203,7 @@ def data_preprocessing_for_ml(
     for col in cleaned_data.columns:
       if cleaned_data[col].nunique() == 1:
         cleaned_data.drop([col], axis=1, inplace=True)
-    for label in [*numeric_labels, *categorical_labels]:
+    for label in [*numeric_labels, *categorical_labels]:  # pyrefly: ignore[not-iterable]
       if cleaned_data[label].nunique() == 1:
         raise ValueError(
             f'Label {label} only has one unique value. Please validate your'
@@ -1219,7 +1219,7 @@ def data_preprocessing_for_ml(
       id_cols=id_cols,
       labels=result.labels,
       label_types=result.label_types,
-      min_correlation_threshold_with_numeric_labels_for_feature_reduction=min_correlation_threshold_with_numeric_labels_for_feature_reduction,
+      min_correlation_threshold_with_numeric_labels_for_feature_reduction=min_correlation_threshold_with_numeric_labels_for_feature_reduction,  # pyrefly: ignore[bad-argument-type]
   )
   ml_ready_dfs = dict()
   for label, ml_df in dfs_with_selected_features.items():
@@ -1232,8 +1232,8 @@ def data_preprocessing_for_ml(
         categorical_features=categorical_features,
         label_type=result.label_types[label],
         train_test_split_order_by_cols=train_test_split_order_by_cols,
-        train_test_split_asc_order=train_test_split_asc_order,
-        train_test_split_test_size_proportion=train_test_split_test_size_proportion,
+        train_test_split_asc_order=train_test_split_asc_order,  # pyrefly: ignore[bad-argument-type]
+        train_test_split_test_size_proportion=train_test_split_test_size_proportion,  # pyrefly: ignore[bad-argument-type]
         gcp_storage_client=gcp_storage_client,
         gcp_bucket_name=gcp_bucket_name,
         pipeline_name=f'{data_processing_pipeline_name}_for_label_{label}',

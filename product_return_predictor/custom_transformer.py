@@ -222,7 +222,7 @@ class ResamplingTransformer(base.BaseEstimator, base.TransformerMixin):
   label_type: constant.LabelType
   resampler: (
       str | over_sampling.RandomOverSampler | under_sampling.RandomUnderSampler
-  ) = None
+  ) = None  # pyrefly: ignore[bad-assignment]
 
   def fit(self, x: pd.DataFrame, y: pd.Series) -> 'ResamplingTransformer':
     """Fits the resampler with data.

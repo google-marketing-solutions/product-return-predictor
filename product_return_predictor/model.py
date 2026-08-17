@@ -122,7 +122,7 @@ def build_hyperparameter_tuning_options_for_bqml_dnn_model(
     raise ValueError(f"Model type {model_type.value} is not supported.")
   else:
     dnn_activation_functions_str = ",".join(
-        ["'{}'".format(func.value) for func in set(dnn_activation_functions)]
+        ["'{}'".format(func.value) for func in set(dnn_activation_functions)]  # pyrefly: ignore[bad-argument-type]
     )
     activation_functions_str = (
         f"ACTIVATION_FN = HPARAM_CANDIDATES([{dnn_activation_functions_str}])"
@@ -145,7 +145,7 @@ def build_hyperparameter_tuning_options_for_bqml_dnn_model(
         f" {learning_rate_upper_bound})"
     )
     dnn_optimizers_str = ",".join(
-        ["'{}'".format(opt.value) for opt in list(dnn_optimizers)]
+        ["'{}'".format(opt.value) for opt in list(dnn_optimizers)]  # pyrefly: ignore[bad-argument-type]
     )
     optimizer_str = f"OPTIMIZER = HPARAM_CANDIDATES([{dnn_optimizers_str}])"
     model_type_str = f"MODEL_TYPE = '{model_type.value}'"

@@ -188,7 +188,7 @@ class ProductReturnPredictor:
           and not utils.check_bigquery_table_exists(
               self.gcp_bq_client,
               self.dataset_id,
-              self.ml_training_table_name,
+              self.ml_training_table_name,  # pyrefly: ignore[bad-argument-type]
           )
       ):
         raise ValueError(
@@ -276,7 +276,7 @@ class ProductReturnPredictor:
           id_cols=self.id_cols,
           numeric_labels=self.numeric_labels,
           categorical_labels=self.categorical_labels,
-          train_test_split_order_by_cols=[self.transaction_date_col],
+          train_test_split_order_by_cols=[self.transaction_date_col],  # pyrefly: ignore[bad-argument-type]
           location=self.location,
           train_test_split_test_size_proportion=self.train_test_split_test_size_proportion,
           invalid_value_threshold_for_row_removal=self.invalid_value_threshold_for_row_removal,
@@ -297,7 +297,7 @@ class ProductReturnPredictor:
           id_cols=self.id_cols,
           numeric_labels=self.numeric_labels,
           categorical_labels=self.categorical_labels,
-          train_test_split_order_by_cols=[self.transaction_date_col],
+          train_test_split_order_by_cols=[self.transaction_date_col],  # pyrefly: ignore[bad-argument-type]
           location=self.location,
           train_test_split_test_size_proportion=self.train_test_split_test_size_proportion,
           invalid_value_threshold_for_row_removal=self.invalid_value_threshold_for_row_removal,
@@ -306,17 +306,17 @@ class ProductReturnPredictor:
       )
     else:
       data_cleaning_feature_selection.create_ml_ready_data_for_preprocessed_data_provided_by_user(
-          preprocessed_table_name_by_user=self.ml_prediction_table_name
+          preprocessed_table_name_by_user=self.ml_prediction_table_name  # pyrefly: ignore[bad-argument-type]
           if use_prediction_pipeline
           else self.ml_training_table_name,
           bigquery_client=self.gcp_bq_client,
           project_id=self.project_id,
           dataset_id=self.dataset_id,
-          refund_value_col=self.refund_value_col,
-          refund_flag_col=self.refund_flag_col,
-          refund_proportion_col=self.refund_proportion_col,
+          refund_value_col=self.refund_value_col,  # pyrefly: ignore[bad-argument-type]
+          refund_flag_col=self.refund_flag_col,  # pyrefly: ignore[bad-argument-type]
+          refund_proportion_col=self.refund_proportion_col,  # pyrefly: ignore[bad-argument-type]
           use_prediction_pipeline=use_prediction_pipeline,
-          transaction_id_col=self.transaction_id_col,
+          transaction_id_col=self.transaction_id_col,  # pyrefly: ignore[bad-argument-type]
           train_test_split_test_size_proportion=self.train_test_split_test_size_proportion,
       )
 
@@ -416,16 +416,16 @@ class ProductReturnPredictor:
     else:
       preprocessed_table_name = self.ml_training_table_name
     model.bigquery_ml_model_training(
-        preprocessed_table_name=preprocessed_table_name,
+        preprocessed_table_name=preprocessed_table_name,  # pyrefly: ignore[bad-argument-type]
         project_id=self.project_id,
         dataset_id=self.dataset_id,
-        transaction_date_col=self.transaction_date_col,
-        transaction_id_col=self.transaction_id_col,
+        transaction_date_col=self.transaction_date_col,  # pyrefly: ignore[bad-argument-type]
+        transaction_id_col=self.transaction_id_col,  # pyrefly: ignore[bad-argument-type]
         num_tiers=num_tiers_to_create_avg_prediction,
         bigquery_client=self.gcp_bq_client,
         regression_model_type=regression_model_type,
         binary_classifier_model_type=binary_classifier_model_type,
-        refund_value=self.refund_value_col,
+        refund_value=self.refund_value_col,  # pyrefly: ignore[bad-argument-type]
         refund_flag=self.refund_flag_col,
         is_two_step_model=is_two_step_model,
         probability_threshold_for_prediction=probability_threshold_for_prediction,
@@ -434,13 +434,13 @@ class ProductReturnPredictor:
     )
     performance_metrics_dfs = (
         model_prediction_evaluation.model_performance_metrics(
-            preprocessed_table_name=preprocessed_table_name,
+            preprocessed_table_name=preprocessed_table_name,  # pyrefly: ignore[bad-argument-type]
             project_id=self.project_id,
             bigquery_client=self.gcp_bq_client,
             dataset_id=self.dataset_id,
             is_two_step_model=is_two_step_model,
-            refund_flag=self.refund_flag_col,
-            refund_value=self.refund_value_col,
+            refund_flag=self.refund_flag_col,  # pyrefly: ignore[bad-argument-type]
+            refund_value=self.refund_value_col,  # pyrefly: ignore[bad-argument-type]
             regression_model_type=regression_model_type,
             binary_classifier_model_type=binary_classifier_model_type,
         )
@@ -450,8 +450,8 @@ class ProductReturnPredictor:
         project_id=self.project_id,
         dataset_id=self.dataset_id,
         bigquery_client=self.gcp_bq_client,
-        preprocessed_table_name=preprocessed_table_name,
-        refund_value=self.refund_value_col,
+        preprocessed_table_name=preprocessed_table_name,  # pyrefly: ignore[bad-argument-type]
+        refund_value=self.refund_value_col,  # pyrefly: ignore[bad-argument-type]
         refund_flag=self.refund_flag_col,
         regression_model_type=regression_model_type,
         use_prediction_pipeline=False,
@@ -464,21 +464,21 @@ class ProductReturnPredictor:
     )
     model_prediction_evaluation.compare_and_plot_tier_level_avg_prediction(
         project_id=self.project_id,
-        preprocessed_table_name=preprocessed_table_name,
+        preprocessed_table_name=preprocessed_table_name,  # pyrefly: ignore[bad-argument-type]
         dataset_id=self.dataset_id,
         bigquery_client=self.gcp_bq_client,
-        refund_flag=self.refund_flag_col,
-        refund_value=self.refund_value_col,
+        refund_flag=self.refund_flag_col,  # pyrefly: ignore[bad-argument-type]
+        refund_value=self.refund_value_col,  # pyrefly: ignore[bad-argument-type]
         **plot_kwargs,
     )
     feature_importance_dfs = (
         model_prediction_evaluation.training_feature_importance(
             project_id=self.project_id,
             dataset_id=self.dataset_id,
-            preprocessed_table_name=preprocessed_table_name,
+            preprocessed_table_name=preprocessed_table_name,  # pyrefly: ignore[bad-argument-type]
             bigquery_client=self.gcp_bq_client,
-            refund_value=self.refund_value_col,
-            refund_flag=self.refund_flag_col,
+            refund_value=self.refund_value_col,  # pyrefly: ignore[bad-argument-type]
+            refund_flag=self.refund_flag_col,  # pyrefly: ignore[bad-argument-type]
             regression_model_type=regression_model_type,
             binary_classifier_model_type=binary_classifier_model_type,
             is_two_step_model=is_two_step_model,
@@ -571,16 +571,16 @@ class ProductReturnPredictor:
     model.bigquery_ml_model_prediction(
         project_id=self.project_id,
         dataset_id=self.dataset_id,
-        preprocessed_table_name=preprocessed_table_name,
+        preprocessed_table_name=preprocessed_table_name,  # pyrefly: ignore[bad-argument-type]
         bigquery_client=self.gcp_bq_client,
-        transaction_date_col=self.transaction_date_col,
-        transaction_id_col=self.transaction_id_col,
+        transaction_date_col=self.transaction_date_col,  # pyrefly: ignore[bad-argument-type]
+        transaction_id_col=self.transaction_id_col,  # pyrefly: ignore[bad-argument-type]
         regression_model_type=regression_model_type,
         binary_classifier_model_type=binary_classifier_model_type,
-        refund_value=self.refund_value_col,
+        refund_value=self.refund_value_col,  # pyrefly: ignore[bad-argument-type]
         refund_flag=self.refund_flag_col,
         probability_threshold_for_prediction=probability_threshold_for_prediction,
         is_two_step_model=is_two_step_model,
         bqml_template_files_dir=bqml_template_files_dir,
-        preprocessed_training_table_name=preprocessed_training_table_name,
+        preprocessed_training_table_name=preprocessed_training_table_name,  # pyrefly: ignore[bad-argument-type]
     )

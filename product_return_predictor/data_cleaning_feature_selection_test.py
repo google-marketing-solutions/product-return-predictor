@@ -110,7 +110,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
                     'refund_value': constant.LabelType.NUMERICAL,
                 },
                 min_correlation_threshold=0.1,
-                selected_features={
+                selected_features={  # pyrefly: ignore[bad-argument-type]
                     'refund_flag': [
                         'event_count_click',
                         'refund_flag',
@@ -131,7 +131,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
             ),
         )]
     )
-    self.feature_selection_pipeline.__sklearn_is_fitted__ = True
+    self.feature_selection_pipeline.__sklearn_is_fitted__ = True  # pyrefly: ignore[bad-assignment]
     self.data_transformation_pipeline = pipeline.Pipeline(
         steps=[
             (
@@ -313,7 +313,7 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
         output.loc[
             output['transaction_date'] == '1/1/2021', 'train_test'
         ].unique(),
-        np.array(['test']),
+        np.array(['test']),  # pyrefly: ignore[bad-argument-type]
     )
 
   @mock.patch.object(
