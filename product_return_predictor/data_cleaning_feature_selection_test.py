@@ -111,18 +111,18 @@ class DataCleaningFeatureSelectionTest(absltest.TestCase):
                 },
                 min_correlation_threshold=0.1,
                 selected_features={  # pyrefly: ignore[bad-argument-type]
-                    'refund_flag': [
+                    'refund_flag': [  # pyrefly: ignore[bad-assignment]
                         'event_count_click',
                         'refund_flag',
                         'transaction_id',
                         'transaction_date',
                     ],
-                    'refund_proportion': [
+                    'refund_proportion': [  # pyrefly: ignore[bad-assignment]
                         'refund_proportion',
                         'transaction_id',
                         'transaction_date',
                     ],
-                    'refund_value': [
+                    'refund_value': [  # pyrefly: ignore[bad-assignment]
                         'refund_value',
                         'transaction_id',
                         'transaction_date',
